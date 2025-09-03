@@ -1,7 +1,13 @@
 .vscode/
+node_modules
 bgm.mp3
 city.glb
 footstep.mp3
 subway.mp3
 subway.glb
 gallery.glb
+fps.glb
+glock.glb
+silenthill.mp3
+shot.mp3
+reload.mp3
