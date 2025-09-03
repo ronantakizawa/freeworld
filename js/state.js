@@ -34,6 +34,8 @@ export let isReturningToCity = false;
 // Item system
 export let itemObjects = [];
 export let hasGun = false;
+export let hasKnife = false;
+export let currentWeapon = 'none'; // 'none', 'glock', 'knife'
 export let fpsOverlay = null;
 export let fpsOverlayActive = false;
 export let fpsOverlayMixer = null;
@@ -75,3 +77,5 @@ export function setPlayerRotation(rotation) { playerRotation = rotation; }
 export function setCollisionObjects(objects) { collisionObjects = objects; }
 export function setItemObjects(objects) { itemObjects = objects; }
 export function setInteractionObjects(objects) { interactionObjects = objects; }
+export function setHasKnife(hasKnifeValue) { hasKnife = hasKnifeValue; }
+export function setCurrentWeapon(weapon) { currentWeapon = weapon; }

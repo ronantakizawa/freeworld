@@ -1,7 +1,7 @@
 // Item system for collectibles
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { scene, itemObjects, animationMixers, hasGun, setItemObjects } from './state.js';
+import { scene, itemObjects, animationMixers, hasGun, hasKnife, setItemObjects } from './state.js';
 
 // Clear item objects
 export function clearItemObjects() {
@@ -12,7 +12,7 @@ export function clearItemObjects() {
 }
 
 // Load and place an item in the scene
-export function loadItem(itemPath, x, y, z, scale = 1.0) {
+export function loadItem(itemPath, x, y, z, scale = 1.0, itemType = 'glock') {
   const loader = new GLTFLoader();
   
   loader.load(itemPath, function(gltf) {
@@ -62,10 +62,10 @@ export function loadItem(itemPath, x, y, z, scale = 1.0) {
       }
     });
     
-    itemModel.userData = { type: 'item', itemType: 'glock' };
+    itemModel.userData = { type: 'item', itemType: itemType };
     
     scene.add(itemModel);
-    const newItemObjects = [...itemObjects, { object: itemModel, itemType: 'glock', mixer: mixer }];
+    const newItemObjects = [...itemObjects, { object: itemModel, itemType: itemType, mixer: mixer }];
     setItemObjects(newItemObjects);
     
   }, undefined, function(error) {
@@ -76,14 +76,17 @@ export function loadItem(itemPath, x, y, z, scale = 1.0) {
 // Add items to specific maps
 export function addItemsToMap(mapType) {
   if (mapType === 'city' && !hasGun) {
-    loadItem('./glock.glb', 0, -1, -4, 4.0);
+    loadItem('./glock.glb', 0, -1, -4, 4.0, 'glock');
+  }
+  if (mapType === 'city' && !hasKnife) {
+    loadItem('./knife.glb', 5, 0, -6, 0.075, 'knife');
   }
 }
 
 // Rotate items continuously (only if no GLB animation)
 export function rotateItems() {
   itemObjects.forEach(item => {
-    if (item.itemType === 'glock' && !item.mixer) {
+    if ((item.itemType === 'glock' || item.itemType === 'knife') && !item.mixer) {
       item.object.rotation.y += 0.02;
     }
   });

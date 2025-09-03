@@ -128,3 +128,18 @@ export function playShotSound() {
     }
   }
 }
+
+// Play knife sound
+export function playKnifeSound() {
+  if (window.audioContext && window.audioContext.state !== 'suspended') {
+    try {
+      const knifeAudio = new Audio('./knife.wav');
+      knifeAudio.volume = 0.7;
+      knifeAudio.play().catch(error => {
+        console.warn('Knife sound failed:', error);
+      });
+    } catch (error) {
+      console.warn('Knife sound error:', error);
+    }
+  }
+}

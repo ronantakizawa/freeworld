@@ -2,11 +2,11 @@
 import * as THREE from 'three';
 import { 
   scene, camera, playerPosition, interactionObjects, itemObjects, 
-  currentMap, animationMixers,
-  setHasGun, setInteractionObjects, setItemObjects
+  currentMap, animationMixers, hasGun,
+  setHasGun, setHasKnife, setCurrentWeapon, setInteractionObjects, setItemObjects
 } from './state.js';
 import { loadMap } from './maps.js';
-import { playReloadSound } from './audio.js';
+import { playReloadSound, playKnifeSound } from './audio.js';
 
 let isReturningToCity = false;
 
@@ -108,10 +108,20 @@ export function checkInteractions() {
       
       const newItemObjects = itemObjects.filter((_, index) => index !== i);
       setItemObjects(newItemObjects);
-      setHasGun(true);
-      playReloadSound();
       
-      console.log('Glock picked up!');
+      if (item.itemType === 'glock') {
+        setHasGun(true);
+        setCurrentWeapon('glock');
+        playReloadSound();
+        console.log('Glock picked up!');
+      } else if (item.itemType === 'knife') {
+        setHasKnife(true);
+        if (!hasGun) { // If no gun, set knife as current weapon
+          setCurrentWeapon('knife');
+        }
+        playKnifeSound();
+        console.log('Knife picked up!');
+      }
     }
   }
 }

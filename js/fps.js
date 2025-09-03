@@ -3,11 +3,11 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { 
   scene, camera, fpsOverlay, fpsOverlayMixer, fpsOverlayAnimations, fpsOverlayActive,
-  isRecoiling, isReloading, recoilOffset, currentMap,
+  isRecoiling, isReloading, recoilOffset, currentMap, currentWeapon,
   setFpsOverlay, setFpsOverlayActive, setFpsOverlayMixer, 
   setIsRecoiling, setIsReloading, setRecoilOffset
 } from './state.js';
-import { playReloadSound, playShotSound } from './audio.js';
+import { playReloadSound, playShotSound, playKnifeSound } from './audio.js';
 
 // Toggle FPS overlay
 export function toggleFPSOverlay() {
@@ -37,7 +37,15 @@ export function toggleFPSOverlay() {
 function loadFPSOverlay() {
   const loader = new GLTFLoader();
   
-  loader.load('./fps.glb', function(gltf) {
+  // Select model based on current weapon
+  let modelPath;
+  if (currentWeapon === 'knife') {
+    modelPath = './knife_animated.glb';
+  } else {
+    modelPath = './fps.glb'; // Default to glock
+  }
+  
+  loader.load(modelPath, function(gltf) {
     const overlay = gltf.scene;
     
     // Position the FPS overlay to overlap the screen view
@@ -54,6 +62,21 @@ function loadFPSOverlay() {
       gltf.animations.forEach((clip, index) => {
         console.log(`Animation ${index}: ${clip.name}, Duration: ${clip.duration}s`);
       });
+      
+      // For knife, set stationary pose at second 2
+      if (currentWeapon === 'knife' && gltf.animations.length > 0) {
+        const animation = gltf.animations[0];
+        const action = mixer.clipAction(animation);
+        const stationaryTime = Math.min(2, animation.duration);
+        
+        action.setLoop(THREE.LoopOnce);
+        action.clampWhenFinished = true;
+        action.time = stationaryTime;
+        action.play();
+        action.paused = true; // Pause at this frame
+        
+        console.log(`Knife set to stationary pose at ${stationaryTime}s`);
+      }
     }
     
     // Fix material issues and make sure it renders on top
@@ -135,7 +158,11 @@ export function shootRecoil() {
     return;
   }
   
-  playShotSound();
+  if (currentWeapon === 'glock') {
+    playShotSound();
+  } else if (currentWeapon === 'knife') {
+    playKnifeSound();
+  }
   
   if (fpsOverlay && fpsOverlayMixer && window.fpsOverlayAnimations.length > 0 && !isRecoiling) {
     setIsRecoiling(true);
@@ -146,22 +173,42 @@ export function shootRecoil() {
     const action = fpsOverlayMixer.clipAction(animation);
     
     const animationDuration = animation.duration;
-    const lastSecondStart = Math.max(0, animationDuration - 1);
+    
+    let startTime, duration;
+    if (currentWeapon === 'knife') {
+      // Play seconds 2-2.25 for knife
+      startTime = Math.min(2, animationDuration);
+      duration = Math.min(0.25, animationDuration - startTime); // 0.25 second duration
+    } else {
+      // Play last second for glock
+      startTime = Math.max(0, animationDuration - 1);
+      duration = 1;
+    }
     
     action.setLoop(THREE.LoopOnce);
     action.clampWhenFinished = true;
     action.reset();
     
-    action.time = lastSecondStart;
+    action.time = startTime;
     action.setEffectiveTimeScale(1);
     action.play();
     
     setTimeout(() => {
       action.stop();
+      
+      // For knife, return to stationary pose at 2 seconds
+      if (currentWeapon === 'knife') {
+        const stationaryTime = Math.min(2, animationDuration);
+        action.time = stationaryTime;
+        action.play();
+        action.paused = true; // Pause at stationary frame
+        console.log(`Knife returned to stationary pose at ${stationaryTime}s`);
+      }
+      
       setIsRecoiling(false);
-    }, 1000);
+    }, duration * 1000);
     
-    console.log(`Playing last second of animation: ${animation.name} (${lastSecondStart}s - ${animationDuration}s)`);
+    console.log(`Playing ${currentWeapon} animation: ${animation.name} (${startTime}s - ${startTime + duration}s)`);
   } else {
     // Fallback to simple recoil if no animation
     const recoilAmount = 0.05;

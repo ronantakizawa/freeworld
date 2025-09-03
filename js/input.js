@@ -1,8 +1,8 @@
 // Input handling and serial communication
 import { 
   port, reader, isConnected, 
-  hasGun, fpsOverlay, fpsOverlayActive,
-  setIsConnected, isTurning,
+  hasGun, hasKnife, currentWeapon, fpsOverlay, fpsOverlayActive,
+  setIsConnected, isTurning, setCurrentWeapon,
   setIsTurning, setPort, setReader
 } from './state.js';
 import { toggleFPSOverlay, shootRecoil, playReloadAnimation } from './fps.js';
@@ -14,19 +14,34 @@ export function handleKeyPress(event) {
   if (event.code === 'Space') {
     event.preventDefault();
     
-    if (hasGun) {
-      toggleFPSOverlay();
+    if (hasGun || hasKnife) {
+      // If overlay is active, switch weapons
+      if (fpsOverlayActive) {
+        switchWeapon();
+      } else if (currentWeapon !== 'none') {
+        // If no overlay and not 'none', activate with current weapon
+        toggleFPSOverlay();
+      } else {
+        // If currentWeapon is 'none', cycle to first available weapon
+        const availableWeapons = [];
+        if (hasGun) availableWeapons.push('glock');
+        if (hasKnife) availableWeapons.push('knife');
+        if (availableWeapons.length > 0) {
+          setCurrentWeapon(availableWeapons[0]);
+          toggleFPSOverlay();
+        }
+      }
     }
   } else if (event.code === 'KeyZ') {
     event.preventDefault();
     
-    if (hasGun && fpsOverlayActive && fpsOverlay) {
+    if (currentWeapon !== 'none' && fpsOverlayActive && fpsOverlay) {
       shootRecoil();
     }
   } else if (event.code === 'KeyX') {
     event.preventDefault();
     
-    if (hasGun && fpsOverlayActive && fpsOverlay) {
+    if (currentWeapon === 'glock' && fpsOverlayActive && fpsOverlay) {
       playReloadAnimation();
     }
   }
@@ -119,5 +134,32 @@ function parseMicrobitData(dataString) {
     
   } catch (error) {
     console.warn('Parse error:', error);
+  }
+}
+
+// Switch between available weapons
+function switchWeapon() {
+  const availableWeapons = [];
+  if (hasGun) availableWeapons.push('glock');
+  if (hasKnife) availableWeapons.push('knife');
+  availableWeapons.push('none'); // Always include 'none' option
+  
+  if (availableWeapons.length > 1) {
+    const currentIndex = availableWeapons.indexOf(currentWeapon);
+    const nextIndex = (currentIndex + 1) % availableWeapons.length;
+    setCurrentWeapon(availableWeapons[nextIndex]);
+    
+    if (availableWeapons[nextIndex] === 'none') {
+      // Hide overlay for 'none' state
+      if (fpsOverlayActive) {
+        toggleFPSOverlay();
+      }
+      console.log('Switched to no weapon');
+    } else {
+      // Reload the overlay with the new weapon
+      toggleFPSOverlay(); // Hide current
+      toggleFPSOverlay(); // Show new
+      console.log(`Switched to ${availableWeapons[nextIndex]}`);
+    }
   }
 }
