@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>City Explorer</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #000;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+      }
+      
+      #container {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+      }
+      
+      #ui {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        z-index: 100;
+        color: white;
+        font-size: 14px;
+      }
+      
+      #startBtn {
+        background: #ff4444;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        font-size: 16px;
+        cursor: pointer;
+        border-radius: 5px;
+        margin-top: 10px;
+      }
+      
+      #startBtn:hover {
+        background: #cc3333;
+      }
+      
+      #status {
+        margin-bottom: 10px;
+      }
+      
+      #angles {
+        font-family: monospace;
+        background: rgba(0,0,0,0.7);
+        padding: 8px;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container">
+      <div id="ui">
+        <button id="startBtn">Connect MicroBit</button>
+        
+        <div id="instructions" style="margin-top: 20px; max-width: 300px; color: white; font-size: 14px; line-height: 1.4;">
+          <div style="font-weight: bold; margin-bottom: 10px; color: #ffff88;">🎮 How to Play</div>
+          
+          <div style="margin-bottom: 15px;">
+            <div style="font-weight: bold; margin-bottom: 5px;">Controls:</div>
+            <div style="margin-left: 10px;">
+              • <strong>Button A:</strong> Hold to turn right<br>
+              • <strong>Button B:</strong> Press to move forward
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 15px;">
+            <div style="font-weight: bold; margin-bottom: 5px;">Exploration:</div>
+            <div style="margin-left: 10px;">
+              • Find the <span style="color: #00ff00;">green SUBWAY</span> cube to enter underground<br>
+              • Find the <span style="color: #ff0000;">red CITY</span> cube to return to surface<br>
+              • Walk around and explore both environments
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 15px;">
+            <div style="font-weight: bold; margin-bottom: 5px;">Audio:</div>
+            <div style="margin-left: 10px;">
+              • Background music plays automatically<br>
+              • Footsteps sound with each step<br>
+              • Different music in city vs subway
+            </div>
+          </div>
+          
+          <div style="font-size: 12px; color: #cccccc; margin-top: 15px;">
+            💡 <em>Tip: Use Chrome or Edge browser for best compatibility</em>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module" src="cityexplorer.js"></script>
+  </body>
+</html>
