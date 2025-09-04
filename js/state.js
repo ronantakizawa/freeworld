@@ -48,6 +48,17 @@ export let recoilOffset = 0;
 export let animationMixers = [];
 export let clock = new THREE.Clock();
 
+// Tank system
+export let tankMode = false;
+export let tankModel = null;
+export let tankMixer = null;
+export let tankPosition = new THREE.Vector3(0, 0, 0);
+export let tankRotation = 0;
+export let tankMoving = false;
+export let preserveRotationOnMapLoad = false;
+export let tankModeEnterTime = 0;
+
+
 // Collision detection
 export let raycaster = new THREE.Raycaster();
 export let collisionObjects = [];
@@ -79,3 +90,14 @@ export function setItemObjects(objects) { itemObjects = objects; }
 export function setInteractionObjects(objects) { interactionObjects = objects; }
 export function setHasKnife(hasKnifeValue) { hasKnife = hasKnifeValue; }
 export function setCurrentWeapon(weapon) { currentWeapon = weapon; }
+export function setTankMode(mode) { 
+  tankMode = mode; 
+  if (mode) {
+    tankModeEnterTime = Date.now();
+  }
+}
+export function setTankModel(model) { tankModel = model; }
+export function setTankMixer(mixer) { tankMixer = mixer; }
+export function setTankRotation(rotation) { tankRotation = rotation; }
+export function setTankMoving(moving) { tankMoving = moving; }
+export function setPreserveRotationOnMapLoad(preserve) { preserveRotationOnMapLoad = preserve; }

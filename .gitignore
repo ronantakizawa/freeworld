@@ -1,19 +1,21 @@
+# Editor
 .vscode/
-node_modules
-bgm.mp3
-city.glb
-footstep.mp3
-subway.mp3
-subway.glb
-gallery.glb
-fps.glb
-glock.glb
-silenthill.mp3
-shot.mp3
-reload.mp3
-cityexplorer.js.backup
-knife.glb
-knife_animated.glb
-knife.wav
+.DS_Store
+
+# Dependencies
+node_modules/
+
+# Audio files
+*.mp3
+*.wav
+
+# 3D model files
+*.glb
+
+# Backups
+*.backup
+
+# Asset folders
 audio/
 maps/
+glb/

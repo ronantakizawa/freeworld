@@ -3,15 +3,35 @@ import * as THREE from 'three';
 import { 
   camera, playerPosition, playerRotation, isTurning,
   currentMap, collisionObjects, groundRaycaster, lastGroundHeight,
-  raycaster, bobOffset, recoilOffset,
+  raycaster, bobOffset, recoilOffset, tankMode, tankMoving, clock,
   setLastGroundHeight, setPlayerRotation
 } from './state.js';
 import { MOVEMENT_CONFIG } from './config.js';
 import { mapConfigs } from './config.js';
 import { checkInteractions } from './interactions.js';
+import { moveTankForward, turnTank, updateTankCameraPosition } from './tank.js';
+import { getMapBoundaries } from './maps.js';
 
 // Check for collisions in a given direction
 export function checkCollision(direction) {
+  // Check actual map boundaries for city and subway maps
+  const newX = playerPosition.x + direction.x * MOVEMENT_CONFIG.stepSize;
+  const newZ = playerPosition.z + direction.z * MOVEMENT_CONFIG.stepSize;
+  
+  if (currentMap === 'city' || currentMap === 'subway') {
+    const boundaries = getMapBoundaries();
+    if (boundaries) {
+      // Add small buffer to boundaries for smoother experience
+      const buffer = 5;
+      if (newX < boundaries.minX + buffer || newX > boundaries.maxX - buffer ||
+          newZ < boundaries.minZ + buffer || newZ > boundaries.maxZ - buffer) {
+        console.log('Map boundary collision detected at:', newX, newZ, 'Boundaries:', boundaries);
+        return true; // Block movement
+      }
+    }
+  }
+  
+  // Original collision detection with objects
   raycaster.set(playerPosition, direction.normalize());
   const intersects = raycaster.intersectObjects(collisionObjects, true);
   return intersects.length > 0 && intersects[0].distance < MOVEMENT_CONFIG.stepSize + 0.5;
@@ -19,30 +39,39 @@ export function checkCollision(direction) {
 
 // Make a discrete movement step
 export function makeStep(action) {
-  if (action === 'forward') {
-    const forward = new THREE.Vector3(
-      -Math.sin(playerRotation),
-      0,
-      -Math.cos(playerRotation)
-    );
-    
-    if (checkCollision(forward)) {
-      return;
+  if (tankMode) {
+    // Tank movement
+    if (action === 'forward') {
+      moveTankForward();
+      checkInteractions();
+    }
+  } else {
+    // Regular player movement
+    if (action === 'forward') {
+      const forward = new THREE.Vector3(
+        -Math.sin(playerRotation),
+        0,
+        -Math.cos(playerRotation)
+      );
+      
+      if (checkCollision(forward)) {
+        return;
+      }
+      
+      const newX = playerPosition.x + forward.x * MOVEMENT_CONFIG.stepSize;
+      const newZ = playerPosition.z + forward.z * MOVEMENT_CONFIG.stepSize;
+      
+      playerPosition.set(newX, playerPosition.y, newZ);
+      
+      const correctHeight = getGroundHeight(newX, newZ);
+      playerPosition.y = correctHeight;
+      
+      triggerWalkBob();
+      checkInteractions();
     }
     
-    const newX = playerPosition.x + forward.x * MOVEMENT_CONFIG.stepSize;
-    const newZ = playerPosition.z + forward.z * MOVEMENT_CONFIG.stepSize;
-    
-    playerPosition.set(newX, playerPosition.y, newZ);
-    
-    const correctHeight = getGroundHeight(newX, newZ);
-    playerPosition.y = correctHeight;
-    
-    triggerWalkBob();
-    checkInteractions();
+    updateCameraPosition();
   }
-  
-  updateCameraPosition();
 }
 
 // Trigger walking bob animation
@@ -77,23 +106,38 @@ export function updateCameraPosition() {
   playerPosition.y = actualGroundHeight;
   
   camera.position.set(playerPosition.x, actualGroundHeight, playerPosition.z);
-  camera.rotation.y = playerRotation;
-  camera.rotation.x = 0;
+  camera.rotation.set(0, playerRotation, 0); // Reset all rotations properly
 }
 
+
 // Handle continuous turning and any ongoing animations
-export function updatePlayerMovement() {
-  if (isTurning) {
-    let newRotation = playerRotation + MOVEMENT_CONFIG.turnSpeed;
-    
-    if (newRotation > Math.PI * 2) {
-      newRotation -= Math.PI * 2;
-    } else if (newRotation < 0) {
-      newRotation += Math.PI * 2;
+export function updatePlayerMovement(deltaTime) {
+  
+  if (tankMode) {
+    // Tank mode: Button A for turning, handle continuous movement with Button B
+    if (isTurning) {
+      turnTank();
     }
     
-    setPlayerRotation(newRotation);
-    camera.rotation.y = newRotation;
+    if (tankMoving) {
+      moveTankForward(deltaTime);
+      checkInteractions();
+    }
+    updateTankCameraPosition();
+  } else {
+    // Regular player mode
+    if (isTurning) {
+      let newRotation = playerRotation + MOVEMENT_CONFIG.turnSpeed;
+      
+      if (newRotation > Math.PI * 2) {
+        newRotation -= Math.PI * 2;
+      } else if (newRotation < 0) {
+        newRotation += Math.PI * 2;
+      }
+      
+      setPlayerRotation(newRotation);
+      camera.rotation.y = newRotation;
+    }
   }
 }
 
@@ -137,3 +181,4 @@ export function getGroundHeight(x, z) {
   
   return smoothedHeight;
 }
+

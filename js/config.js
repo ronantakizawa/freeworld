@@ -26,6 +26,15 @@ export const mapConfigs = {
     name: 'Silent Hill',
     spawnPosition: { x: 0, y: 2.0, z: 0 },
     bgMusic: './silenthill.mp3'
+  },
+  tank: {
+    path: './city.glb', // Use city model for tank mode
+    scale: 1.0,
+    groundLevel: 1.0,
+    name: 'Tank Mode',
+    spawnPosition: { x: 0, y: 2.0, z: 0 },
+    bgMusic: './bgm.mp3',
+    tankMode: true
   }
 };
 

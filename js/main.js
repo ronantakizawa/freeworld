@@ -9,7 +9,7 @@ import { initAudio } from './audio.js';
 import { handleKeyPress, connectMicrobit } from './input.js';
 import { updatePlayerMovement } from './movement.js';
 import { updateFPSOverlayPosition } from './fps.js';
-import { rotateItems } from './items.js';
+import { rotateItems, checkZombieProximity } from './items.js';
 import { loadMap } from './maps.js';
 
 // Initialize the 3D scene
@@ -140,13 +140,16 @@ function animate() {
   }
   
   // Update player movement
-  updatePlayerMovement();
+  updatePlayerMovement(delta);
   
   // Update FPS overlay position if active
   updateFPSOverlayPosition();
   
   // Rotate Glock items (only if no GLB animation)
   rotateItems();
+  
+  // Check zombie proximity for audio
+  checkZombieProximity();
   
   renderer.render(scene, camera);
 }

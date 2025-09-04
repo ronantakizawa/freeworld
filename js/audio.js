@@ -4,6 +4,8 @@ import { mapConfigs } from './config.js';
 
 let footstepAudio;
 let bgmAudio;
+let tankAudio;
+let zombieAudio;
 
 // Initialize audio system
 export function initAudio() {
@@ -61,6 +63,13 @@ export function switchBackgroundMusic(musicPath) {
     if (bgmAudio) {
       bgmAudio.pause();
       bgmAudio.currentTime = 0;
+    }
+    
+    // Stop tank audio if it's playing
+    if (tankAudio) {
+      tankAudio.pause();
+      tankAudio.currentTime = 0;
+      tankAudio = null;
     }
     
     // If musicPath is null, don't play any music
@@ -141,5 +150,101 @@ export function playKnifeSound() {
     } catch (error) {
       console.warn('Knife sound error:', error);
     }
+  }
+}
+
+// Start tank audio loop
+export function startTankAudio() {
+  if (!window.audioContext || window.audioContext.state === 'suspended') return;
+  
+  try {
+    // Stop current background music
+    if (window.currentBgMusic) {
+      window.currentBgMusic.pause();
+      window.currentBgMusic.currentTime = 0;
+    }
+    
+    // Stop existing tank audio if playing
+    if (tankAudio) {
+      tankAudio.pause();
+      tankAudio.currentTime = 0;
+    }
+    
+    // Start tank audio
+    tankAudio = new Audio('./tank.mp3');
+    tankAudio.volume = 0.4;
+    tankAudio.loop = true;
+    tankAudio.preload = 'auto';
+    
+    tankAudio.play().catch(error => {
+      console.warn('Tank audio playback failed:', error);
+    });
+    
+    console.log('Tank audio started');
+    
+  } catch (error) {
+    console.warn('Tank audio start failed:', error);
+  }
+}
+
+// Stop tank audio and resume background music
+export function stopTankAudio() {
+  try {
+    // Stop tank audio
+    if (tankAudio) {
+      tankAudio.pause();
+      tankAudio.currentTime = 0;
+      tankAudio = null;
+    }
+    
+    // Resume background music for city
+    switchBackgroundMusic(mapConfigs.city.bgMusic);
+    
+    console.log('Tank audio stopped, background music resumed');
+    
+  } catch (error) {
+    console.warn('Tank audio stop failed:', error);
+  }
+}
+
+// Start zombie audio loop
+export function startZombieAudio() {
+  if (!window.audioContext || window.audioContext.state === 'suspended') return;
+  
+  // Don't start if already playing
+  if (zombieAudio && !zombieAudio.paused) return;
+  
+  try {
+    // Stop existing zombie audio if playing
+    if (zombieAudio) {
+      zombieAudio.pause();
+      zombieAudio.currentTime = 0;
+    }
+    
+    // Start zombie audio
+    zombieAudio = new Audio('./zombie.mp3');
+    zombieAudio.volume = 0.5;
+    zombieAudio.loop = true;
+    zombieAudio.preload = 'auto';
+    
+    zombieAudio.play().catch(error => {
+      console.warn('Zombie audio playback failed:', error);
+    });
+    
+  } catch (error) {
+    console.warn('Zombie audio start failed:', error);
+  }
+}
+
+// Stop zombie audio
+export function stopZombieAudio() {
+  try {
+    if (zombieAudio) {
+      zombieAudio.pause();
+      zombieAudio.currentTime = 0;
+      zombieAudio = null;
+    }
+  } catch (error) {
+    console.warn('Zombie audio stop failed:', error);
   }
 }

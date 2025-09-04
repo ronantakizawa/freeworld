@@ -1,18 +1,33 @@
 // Input handling and serial communication
 import { 
-  port, reader, isConnected, 
+  port, reader, isConnected, camera,
   hasGun, hasKnife, currentWeapon, fpsOverlay, fpsOverlayActive,
-  setIsConnected, isTurning, setCurrentWeapon,
-  setIsTurning, setPort, setReader
+  tankMode, tankMoving, playerPosition, tankPosition, tankRotation, tankModeEnterTime, setIsConnected, isTurning, setCurrentWeapon,
+  setIsTurning, setPort, setReader, setTankMoving, setTankMode, setPlayerRotation, setPreserveRotationOnMapLoad
 } from './state.js';
 import { toggleFPSOverlay, shootRecoil, playReloadAnimation } from './fps.js';
 import { playFootstep } from './audio.js';
 import { makeStep } from './movement.js';
+import { startTankAnimation, stopTankAnimation, removeTankModel } from './tank.js';
+import { updateCameraPosition, getGroundHeight } from './movement.js';
+import { stopTankAudio } from './audio.js';
+import { loadMap } from './maps.js';
+
+// Initialize button state tracking for regular mode
+if (typeof window.lastButtonBState === 'undefined') {
+  window.lastButtonBState = 0;
+}
 
 // Handle key press events
 export function handleKeyPress(event) {
   if (event.code === 'Space') {
     event.preventDefault();
+    
+    // Disable weapon switching and FPS overlays in tank mode
+    if (tankMode) {
+      console.log('Tank mode - weapon/FPS overlay disabled');
+      return;
+    }
     
     if (hasGun || hasKnife) {
       // If overlay is active, switch weapons
@@ -35,16 +50,20 @@ export function handleKeyPress(event) {
   } else if (event.code === 'KeyZ') {
     event.preventDefault();
     
-    if (currentWeapon !== 'none' && fpsOverlayActive && fpsOverlay) {
+    // Z key pressed for shooting/slashing
+    
+    if (tankMode) {
+      // Prevent immediate exit - require at least 1 second in tank mode
+      const timeSinceEnter = Date.now() - tankModeEnterTime;
+      
+      if (timeSinceEnter > 1000) {
+        exitTankMode();
+      }
+    } else if (currentWeapon !== 'none' && fpsOverlayActive && fpsOverlay) {
       shootRecoil();
     }
-  } else if (event.code === 'KeyX') {
-    event.preventDefault();
-    
-    if (currentWeapon === 'glock' && fpsOverlayActive && fpsOverlay) {
-      playReloadAnimation();
-    }
   }
+  // Removed KeyX reload - now handled automatically every 3rd shot
 }
 
 // MicroBit serial communication
@@ -117,14 +136,41 @@ function parseMicrobitData(dataString) {
         const buttonAState = parseInt(parts[0]);
         const buttonBEvent = parseInt(parts[1]);
         
+        // Removed logging to clean up console
+        
         if (!isNaN(buttonAState) && !isNaN(buttonBEvent)) {
-          // Button A state - continuous turning
-          setIsTurning(buttonAState === 1);
+          // Note: buttonBEvent is now actually buttonBState from MicroBit
+          const buttonBState = buttonBEvent;
           
-          // Button B event - discrete forward step
-          if (buttonBEvent === 1) {
-            playFootstep();
-            makeStep('forward');
+          if (tankMode) {
+            // Tank mode: Button A for turning, Button B for continuous movement
+            setIsTurning(buttonAState === 1);
+            
+            const wasMoving = tankMoving;
+            const nowMoving = buttonBState === 1;
+            
+            setTankMoving(nowMoving);
+            
+            // Handle animation start/stop
+            if (nowMoving && !wasMoving) {
+              startTankAnimation();
+            } else if (!nowMoving && wasMoving) {
+              stopTankAnimation();
+            }
+          } else {
+            // Regular mode: Button A continuous turning, Button B discrete steps
+            setIsTurning(buttonAState === 1);
+            
+            // For regular mode, we need to detect button press edges from the state
+            const wasPressed = window.lastButtonBState === 1;
+            const nowPressed = buttonBState === 1;
+            
+            if (nowPressed && !wasPressed) {
+              playFootstep();
+              makeStep('forward');
+            }
+            
+            window.lastButtonBState = buttonBState;
           }
           
           return;
@@ -162,4 +208,23 @@ function switchWeapon() {
       console.log(`Switched to ${availableWeapons[nextIndex]}`);
     }
   }
+}
+
+// Exit tank mode and return to normal city view
+function exitTankMode() {
+  // FIRST: Disable tank mode immediately to stop tank camera updates
+  setTankMode(false);
+  
+  // Reset player rotation to 0 (facing forward)
+  setPlayerRotation(0);
+  
+  // Explicitly reset camera rotation to clear any tank camera effects
+  camera.rotation.set(0, 0, 0);
+  camera.quaternion.set(0, 0, 0, 1); // Reset quaternion to identity
+  
+  // Set flag to preserve rotation during map load
+  setPreserveRotationOnMapLoad(true);
+  
+  // Load the city map with preserved rotation
+  loadMap('city');
 }

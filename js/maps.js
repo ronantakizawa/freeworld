@@ -2,17 +2,20 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { 
-  scene, currentModel, playerPosition, 
+  scene, currentModel, playerPosition, tankPosition, playerRotation, preserveRotationOnMapLoad, fpsOverlayActive,
   setCurrentModel, setCurrentMap, setLastGroundHeight,
-  setCollisionObjects 
+  setCollisionObjects, setTankMode, setPreserveRotationOnMapLoad, setPlayerRotation
 } from './state.js';
 import { mapConfigs } from './config.js';
-import { switchBackgroundMusic } from './audio.js';
+import { switchBackgroundMusic, startTankAudio } from './audio.js';
+import { toggleFPSOverlay } from './fps.js';
 import { clearInteractionObjects, addInteractionObjects } from './interactions.js';
 import { clearItemObjects, addItemsToMap } from './items.js';
 import { updateCameraPosition, getGroundHeight } from './movement.js';
+import { loadTankModel, removeTankModel } from './tank.js';
 
 let ambientLight, directionalLight;
+let mapBoundaries = null; // Store calculated map boundaries
 
 // Load a map
 export function loadMap(mapType) {
@@ -83,6 +86,9 @@ export function loadMap(mapType) {
     
     setCollisionObjects(newCollisionObjects);
     
+    // Calculate map boundaries from the loaded model
+    calculateMapBoundaries(model);
+    
     scene.add(model);
     setCurrentModel(model);
     setCurrentMap(mapType);
@@ -95,13 +101,44 @@ export function loadMap(mapType) {
     setLastGroundHeight(null);
     const spawnGroundHeight = getGroundHeight(spawnX, spawnZ);
     playerPosition.y = spawnGroundHeight;
-    updateCameraPosition();
+    
+    // Update camera position, preserving rotation if flag is set
+    if (preserveRotationOnMapLoad) {
+      // Keep the current player rotation that was set before map loading
+      updateCameraPosition();
+      setPreserveRotationOnMapLoad(false); // Reset flag
+      console.log('Preserved player rotation during map load:', playerRotation);
+    } else {
+      updateCameraPosition();
+    }
     
     switchBackgroundMusic(config.bgMusic);
     addInteractionObjects(mapType);
     addItemsToMap(mapType);
     addLighting();
     updateEnvironmentEffects(mapType);
+    
+    // Handle tank mode
+    if (config.tankMode) {
+      console.log('Activating tank mode, time:', Date.now());
+      
+      // Hide FPS overlay when entering tank mode
+      if (fpsOverlayActive) {
+        console.log('Hiding FPS overlay for tank mode');
+        toggleFPSOverlay();
+      }
+      
+      setTankMode(true);
+      // Set tank position to player spawn
+      tankPosition.set(spawnX, config.groundLevel, spawnZ);
+      loadTankModel();
+      startTankAudio(); // Start tank audio and stop background music
+      console.log('Tank mode activated successfully');
+    } else {
+      console.log('Deactivating tank mode');
+      setTankMode(false);
+      removeTankModel();
+    }
     
     hideLoadingScreen();
     
@@ -246,4 +283,26 @@ function updateLoadingProgress(text) {
   if (loadingText) {
     loadingText.textContent = text;
   }
+}
+
+// Calculate the boundaries of the loaded map model
+function calculateMapBoundaries(model) {
+  const box = new THREE.Box3();
+  box.setFromObject(model);
+  
+  mapBoundaries = {
+    minX: box.min.x,
+    maxX: box.max.x,
+    minZ: box.min.z,
+    maxZ: box.max.z,
+    minY: box.min.y,
+    maxY: box.max.y
+  };
+  
+  // Map boundaries calculated and stored
+}
+
+// Get current map boundaries (exported for use in movement system)
+export function getMapBoundaries() {
+  return mapBoundaries;
 }

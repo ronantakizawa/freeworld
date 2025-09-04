@@ -8,6 +8,10 @@ import {
   setIsRecoiling, setIsReloading, setRecoilOffset
 } from './state.js';
 import { playReloadSound, playShotSound, playKnifeSound } from './audio.js';
+import { checkTargetHit, checkKnifeSlash } from './items.js';
+
+// Shot counter for automatic reload
+let shotCounter = 0;
 
 // Toggle FPS overlay
 export function toggleFPSOverlay() {
@@ -26,8 +30,12 @@ export function toggleFPSOverlay() {
     setIsRecoiling(false);
     setIsReloading(false);
     setFpsOverlayActive(false);
+    // Reset shot counter when hiding overlay
+    shotCounter = 0;
+    shotCounter = 0;
   } else {
-    // Show FPS overlay
+    // Show FPS overlay and reset shot counter
+    shotCounter = 0;
     loadFPSOverlay();
     setFpsOverlayActive(true);
   }
@@ -160,8 +168,26 @@ export function shootRecoil() {
   
   if (currentWeapon === 'glock') {
     playShotSound();
+    // Check for target hits when shooting with gun
+    checkTargetHit();
+    
+    // Increment shot counter and check for automatic reload
+    shotCounter++;
+    if (shotCounter >= 3) {
+      shotCounter = 0; // Reset counter
+      // Trigger reload after the current shot animation completes
+      setTimeout(() => {
+        if (currentWeapon === 'glock' && fpsOverlayActive && fpsOverlay && !isReloading) {
+          // Force stop current recoil animation first
+          setIsRecoiling(false);
+          playReloadAnimation();
+        }
+      }, 1200); // Longer delay to ensure shot animation fully completes
+    }
   } else if (currentWeapon === 'knife') {
     playKnifeSound();
+    // Check for knife slash on nearby targets
+    checkKnifeSlash();
   }
   
   if (fpsOverlay && fpsOverlayMixer && window.fpsOverlayAnimations.length > 0 && !isRecoiling) {
@@ -246,10 +272,10 @@ export function shootRecoil() {
 export function playReloadAnimation() {
   playReloadSound();
   
-  if (fpsOverlay && fpsOverlayMixer && window.fpsOverlayAnimations.length > 0 && !isRecoiling && !isReloading) {
-    setIsRecoiling(true);
+  if (fpsOverlay && fpsOverlayMixer && window.fpsOverlayAnimations.length > 0 && !isReloading) {
+    // Ensure we're not in recoiling state and stop all current animations
+    setIsRecoiling(false);
     setIsReloading(true);
-    
     fpsOverlayMixer.stopAllAction();
     
     const animation = window.fpsOverlayAnimations[0];
@@ -268,7 +294,5 @@ export function playReloadAnimation() {
       setIsRecoiling(false);
       setIsReloading(false);
     }, playDuration * 1000);
-    
-    console.log(`Playing first ${playDuration} seconds of animation: ${animation.name} (0s - ${playDuration}s)`);
   }
 }
