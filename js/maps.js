@@ -6,7 +6,7 @@ import {
   setCurrentModel, setCurrentMap, setLastGroundHeight,
   setCollisionObjects, setTankMode, setPreserveRotationOnMapLoad, setPlayerRotation, setCurrentWeapon
 } from './state.js';
-import { mapConfigs } from './config.js';
+import { mapConfigs, LIGHTING_CONFIG } from './config.js';
 import { switchBackgroundMusic, startTankAudio } from './audio.js';
 import { toggleFPSOverlay } from './fps.js';
 import { clearInteractionObjects, addInteractionObjects } from './interactions.js';
@@ -193,17 +193,18 @@ function addLighting() {
   ambientLight = new THREE.AmbientLight(0x808080, ambientIntensity); // Increased color from 0x606060 to 0x808080
   scene.add(ambientLight);
   
-  directionalLight = new THREE.DirectionalLight(0xffffff, directionalIntensity);
-  directionalLight.position.set(100, 100, 50);
-  directionalLight.castShadow = true;
-  directionalLight.shadow.mapSize.width = 2048;
-  directionalLight.shadow.mapSize.height = 2048;
-  directionalLight.shadow.camera.near = 0.1;
-  directionalLight.shadow.camera.far = 500;
-  directionalLight.shadow.camera.left = -100;
-  directionalLight.shadow.camera.right = 100;
-  directionalLight.shadow.camera.top = 100;
-  directionalLight.shadow.camera.bottom = -100;
+  const config = LIGHTING_CONFIG.directionalLight;
+  directionalLight = new THREE.DirectionalLight(config.color, directionalIntensity);
+  directionalLight.position.set(config.position.x, config.position.y, config.position.z);
+  directionalLight.castShadow = config.castShadow;
+  directionalLight.shadow.mapSize.width = config.shadow.mapSize.width;
+  directionalLight.shadow.mapSize.height = config.shadow.mapSize.height;
+  directionalLight.shadow.camera.near = config.shadow.camera.near;
+  directionalLight.shadow.camera.far = config.shadow.camera.far;
+  directionalLight.shadow.camera.left = config.shadow.camera.left;
+  directionalLight.shadow.camera.right = config.shadow.camera.right;
+  directionalLight.shadow.camera.top = config.shadow.camera.top;
+  directionalLight.shadow.camera.bottom = config.shadow.camera.bottom;
   scene.add(directionalLight);
 }
 

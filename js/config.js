@@ -126,6 +126,27 @@ export const LABEL_CONFIG = {
   }
 };
 
+
+// Lighting configuration
+export const LIGHTING_CONFIG = {
+  directionalLight: {
+    color: 0xffffff,
+    position: { x: 100, y: 100, z: 50 },
+    castShadow: true,
+    shadow: {
+      mapSize: { width: 2048, height: 2048 },
+      camera: {
+        near: 0.1,
+        far: 500,
+        left: -100,
+        right: 100,
+        top: 100,
+        bottom: -100
+      }
+    }
+  }
+};
+
 // CSS configurations for overlays
 export const OVERLAY_CSS = {
   damageFlash: `

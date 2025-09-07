@@ -9,6 +9,7 @@ import { toggleFPSOverlay, shootRecoil } from './fps.js';
 import { playFootstep } from './audio.js';
 import { makeStep } from './movement.js';
 import { loadMap } from './maps.js';
+import { hideLogo } from './ui.js';
 
 // Initialize button state tracking for regular mode
 if (typeof window.lastButtonBState === 'undefined') {
@@ -64,6 +65,7 @@ export async function connectMicrobit() {
     });
     
     const textDecoder = new TextDecoderStream();
+    // DO NOT REMOVE!
     const readableStreamClosed = newPort.readable.pipeTo(textDecoder.writable);
     const newReader = textDecoder.readable.getReader();
     
@@ -71,6 +73,9 @@ export async function connectMicrobit() {
     setPort(newPort);
     setReader(newReader);
     setIsConnected(true);
+    
+    // Hide logo and show game
+    hideLogo();
     
     document.getElementById('startBtn').textContent = 'Disconnect';
     document.getElementById('startBtn').onclick = disconnectMicrobit;

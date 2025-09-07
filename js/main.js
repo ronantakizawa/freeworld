@@ -11,15 +11,19 @@ import { updatePlayerMovement } from './movement.js';
 import { updateFPSOverlayPosition } from './fps.js';
 import { rotateItems, checkZombieProximity } from './items.js';
 import { loadMap } from './maps.js';
-import { OVERLAY_CSS } from './config.js';
+import { 
+  createLoadingScreen, showLoadingScreen, createDamageOverlay,
+  showDamageEffect, updateProgressiveDamage, showDeathEffect, onWindowResize,
+  showLogo, hideLogo
+} from './ui.js';
 
 // Initialize the 3D scene
 function init() {
   // Create loading screen elements
   createLoadingScreen();
   
-  // Show initial loading
-  showLoadingScreen('Initializing City Explorer...');
+  // Show logo initially instead of loading screen
+  showLogo();
   
   // Create scene
   const scene = new THREE.Scene();
@@ -60,83 +64,7 @@ function init() {
   animate();
 }
 
-async function createLoadingScreen() {
-  try {
-    const response = await fetch('loading.html');
-    const html = await response.text();
-    document.body.insertAdjacentHTML('beforeend', html);
-  } catch (error) {
-    console.error('Failed to load loading screen:', error);
-  }
-}
 
-function showLoadingScreen(text = 'Loading...') {
-  const loadingScreen = document.getElementById('loadingScreen');
-  const loadingText = document.getElementById('loadingText');
-  if (loadingScreen && loadingText) {
-    loadingText.textContent = text;
-    loadingScreen.style.display = 'flex';
-  }
-}
-
-function createDamageOverlay() {
-  // Create temporary damage flash overlay
-  const damageOverlay = document.createElement('div');
-  damageOverlay.id = 'damageOverlay';
-  damageOverlay.style.cssText = OVERLAY_CSS.damageFlash;
-  document.body.appendChild(damageOverlay);
-  
-  // Create persistent progressive damage overlay
-  const progressiveOverlay = document.createElement('div');
-  progressiveOverlay.id = 'progressiveDamageOverlay';
-  progressiveOverlay.style.cssText = OVERLAY_CSS.progressiveDamage;
-  document.body.appendChild(progressiveOverlay);
-}
-
-// Show damage overlay for 1 second
-export function showDamageEffect() {
-  const overlay = document.getElementById('damageOverlay');
-  if (overlay) {
-    overlay.style.display = 'block';
-    setTimeout(() => {
-      overlay.style.display = 'none';
-    }, 1000);
-  }
-}
-
-// Update progressive damage overlay based on damage count
-export function updateProgressiveDamage(damageCount) {
-  const overlay = document.getElementById('progressiveDamageOverlay');
-  if (overlay) {
-    // Increase red opacity based on damage count (0.08 per damage, max 0.4 at 5 damage)
-    const opacity = Math.min(damageCount * 0.08, 0.4);
-    overlay.style.background = `rgba(255, 0, 0, ${opacity})`;
-  }
-}
-
-// Show death fade to black and reload page
-export function showDeathEffect() {
-  // Create death overlay
-  const deathOverlay = document.createElement('div');
-  deathOverlay.style.cssText = OVERLAY_CSS.death;
-  document.body.appendChild(deathOverlay);
-  
-  // Start fade to black
-  setTimeout(() => {
-    deathOverlay.style.opacity = '1';
-  }, 100);
-  
-  // Reload page after fade completes
-  setTimeout(() => {
-    window.location.reload();
-  }, 3500);
-}
-
-function onWindowResize() {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-}
 
 function animate() {
   requestAnimationFrame(animate);

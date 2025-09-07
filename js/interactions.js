@@ -168,6 +168,7 @@ export function clearInteractionObjects() {
     if (item.label.material) item.label.material.dispose();
   });
   setInteractionObjects([]);
+  console.log('Cleared all interaction objects');
 }
 
 // Add interaction objects based on map

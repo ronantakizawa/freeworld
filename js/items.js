@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { scene, itemObjects, animationMixers, hasGun, hasKnife, setItemObjects, camera, playerPosition, currentMap } from './state.js';
 import { startZombieAudio, stopZombieAudio, playDamageSound, playHeartbeatSound } from './audio.js';
-import { showDamageEffect, showDeathEffect, updateProgressiveDamage } from './main.js';
+import { showDamageEffect, showDeathEffect, updateProgressiveDamage } from './ui.js';
 
 // Arrays to track marks for cleanup
 let slashMarks = [];
@@ -206,7 +206,6 @@ export function checkTargetHit() {
   // Check target hits silently
   
   if (!hasGun) {
-    console.log('No gun, target hit blocked');
     return;
   }
   
@@ -318,8 +317,6 @@ function addBulletHole(hitPoint) {
 
 // Add a slash mark (black line) to a target
 function addSlashMark(targetObject) {
-  console.log('🔪 addSlashMark called for target at:', targetObject.position);
-  console.log('🔪 Adding slash mark in map:', currentMap);
   
   // Create a very thin black diagonal slash line on the target
   const lineGeometry = new THREE.CylinderGeometry(0.0025, 0.0025, 0.6, 8); // Half the thickness
@@ -357,8 +354,6 @@ function addSlashMark(targetObject) {
   
   // Add the slash line to the scene
   scene.add(slashLine);
-  
-  console.log('Black slash mark added to target at:', slashLine.position);
 }
 
 // Flip a zombie 90 degrees and stop its animation

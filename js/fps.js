@@ -59,6 +59,9 @@ function loadFPSOverlay() {
     // Position the FPS overlay to overlap the screen view
     overlay.position.set(0, 2, -0.3);
     overlay.scale.set(0.01, 0.001, -0.01);
+    
+    // Rotate 15 degrees to the left (positive Y rotation)
+    overlay.rotation.y = Math.PI / 12; // 15 degrees in radians
   
     
     // Set up animations if they exist
@@ -227,37 +230,7 @@ export function shootRecoil() {
       setIsRecoiling(false);
     }, duration * 1000);
     
-  } else {
-    // Fallback to simple recoil if no animation
-    const recoilAmount = 0.05;
-    const duration = 200;
-    const startTime = Date.now();
-    
-    function animateRecoil() {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      if (progress < 0.5) {
-        const recoilProgress = progress * 2;
-        setRecoilOffset(recoilAmount * recoilProgress);
-      } else {
-        const returnProgress = (progress - 0.5) * 2;
-        setRecoilOffset(recoilAmount - (recoilAmount * returnProgress));
-      }
-      
-      if (progress < 1) {
-        requestAnimationFrame(animateRecoil);
-      } else {
-        setRecoilOffset(0);
-        setIsRecoiling(false);
-      }
-    }
-    
-    if (!isRecoiling) {
-      setIsRecoiling(true);
-      animateRecoil();
-    }
-  }
+  } 
 }
 
 // Play first 2 seconds of animation (X key)
