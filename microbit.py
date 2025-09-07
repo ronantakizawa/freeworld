@@ -1,7 +1,3 @@
-# City Explorer Controller using MicroBit Buttons Only
-# Button A: Turn (continuous while held) - works in both regular and tank mode
-# Button B: Move forward (continuous while held for tank mode, step events for regular mode)
-
 from microbit import *
 
 # Button state tracking for edge detection on B only (for regular mode)

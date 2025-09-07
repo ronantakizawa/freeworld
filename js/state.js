@@ -35,7 +35,8 @@ export let isReturningToCity = false;
 export let itemObjects = [];
 export let hasGun = false;
 export let hasKnife = false;
-export let currentWeapon = 'none'; // 'none', 'glock', 'knife'
+export let currentWeapon = 'none'; 
+export let availableWeapons = [];
 export let fpsOverlay = null;
 export let fpsOverlayActive = false;
 export let fpsOverlayMixer = null;
@@ -90,6 +91,18 @@ export function setItemObjects(objects) { itemObjects = objects; }
 export function setInteractionObjects(objects) { interactionObjects = objects; }
 export function setHasKnife(hasKnifeValue) { hasKnife = hasKnifeValue; }
 export function setCurrentWeapon(weapon) { currentWeapon = weapon; }
+export function setAvailableWeapons(weapons) { availableWeapons = weapons; }
+
+// Update available weapons based on current hasGun and hasKnife state
+export function updateAvailableWeapons(includeNone = false) {
+  const weapons = [];
+  if (hasGun) weapons.push('gun');
+  if (hasKnife) weapons.push('knife');
+  if (includeNone) weapons.push('none');
+  setAvailableWeapons(weapons);
+  return weapons;
+}
+
 export function setTankMode(mode) { 
   tankMode = mode; 
   if (mode) {

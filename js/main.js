@@ -11,6 +11,7 @@ import { updatePlayerMovement } from './movement.js';
 import { updateFPSOverlayPosition } from './fps.js';
 import { rotateItems, checkZombieProximity } from './items.js';
 import { loadMap } from './maps.js';
+import { OVERLAY_CSS } from './config.js';
 
 // Initialize the 3D scene
 function init() {
@@ -37,6 +38,9 @@ function init() {
   document.getElementById('container').appendChild(renderer.domElement);
   setRenderer(renderer);
   
+  // Create damage overlay
+  createDamageOverlay();
+  
   // Load initial map
   loadMap('city');
   
@@ -56,60 +60,14 @@ function init() {
   animate();
 }
 
-function createLoadingScreen() {
-  const loadingDiv = document.createElement('div');
-  loadingDiv.id = 'loadingScreen';
-  loadingDiv.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: black;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    font-family: Arial, sans-serif;
-    color: white;
-  `;
-  
-  const loadingText = document.createElement('div');
-  loadingText.id = 'loadingText';
-  loadingText.style.cssText = `
-    font-size: 24px;
-    font-weight: bold;
-    margin-bottom: 20px;
-    text-align: center;
-  `;
-  loadingText.textContent = 'Loading...';
-  
-  const spinner = document.createElement('div');
-  spinner.style.cssText = `
-    width: 40px;
-    height: 40px;
-    border: 4px solid rgba(255, 255, 255, 0.3);
-    border-top: 4px solid white;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  `;
-  
-  if (!document.getElementById('spinnerStyle')) {
-    const style = document.createElement('style');
-    style.id = 'spinnerStyle';
-    style.textContent = `
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-    `;
-    document.head.appendChild(style);
+async function createLoadingScreen() {
+  try {
+    const response = await fetch('loading.html');
+    const html = await response.text();
+    document.body.insertAdjacentHTML('beforeend', html);
+  } catch (error) {
+    console.error('Failed to load loading screen:', error);
   }
-  
-  loadingDiv.appendChild(loadingText);
-  loadingDiv.appendChild(spinner);
-  document.body.appendChild(loadingDiv);
 }
 
 function showLoadingScreen(text = 'Loading...') {
@@ -119,6 +77,59 @@ function showLoadingScreen(text = 'Loading...') {
     loadingText.textContent = text;
     loadingScreen.style.display = 'flex';
   }
+}
+
+function createDamageOverlay() {
+  // Create temporary damage flash overlay
+  const damageOverlay = document.createElement('div');
+  damageOverlay.id = 'damageOverlay';
+  damageOverlay.style.cssText = OVERLAY_CSS.damageFlash;
+  document.body.appendChild(damageOverlay);
+  
+  // Create persistent progressive damage overlay
+  const progressiveOverlay = document.createElement('div');
+  progressiveOverlay.id = 'progressiveDamageOverlay';
+  progressiveOverlay.style.cssText = OVERLAY_CSS.progressiveDamage;
+  document.body.appendChild(progressiveOverlay);
+}
+
+// Show damage overlay for 1 second
+export function showDamageEffect() {
+  const overlay = document.getElementById('damageOverlay');
+  if (overlay) {
+    overlay.style.display = 'block';
+    setTimeout(() => {
+      overlay.style.display = 'none';
+    }, 1000);
+  }
+}
+
+// Update progressive damage overlay based on damage count
+export function updateProgressiveDamage(damageCount) {
+  const overlay = document.getElementById('progressiveDamageOverlay');
+  if (overlay) {
+    // Increase red opacity based on damage count (0.08 per damage, max 0.4 at 5 damage)
+    const opacity = Math.min(damageCount * 0.08, 0.4);
+    overlay.style.background = `rgba(255, 0, 0, ${opacity})`;
+  }
+}
+
+// Show death fade to black and reload page
+export function showDeathEffect() {
+  // Create death overlay
+  const deathOverlay = document.createElement('div');
+  deathOverlay.style.cssText = OVERLAY_CSS.death;
+  document.body.appendChild(deathOverlay);
+  
+  // Start fade to black
+  setTimeout(() => {
+    deathOverlay.style.opacity = '1';
+  }, 100);
+  
+  // Reload page after fade completes
+  setTimeout(() => {
+    window.location.reload();
+  }, 3500);
 }
 
 function onWindowResize() {
@@ -145,7 +156,7 @@ function animate() {
   // Update FPS overlay position if active
   updateFPSOverlayPosition();
   
-  // Rotate Glock items (only if no GLB animation)
+  // Rotate items (only if no GLB animation)
   rotateItems();
   
   // Check zombie proximity for audio
@@ -156,3 +167,4 @@ function animate() {
 
 // Start the application
 init();
+

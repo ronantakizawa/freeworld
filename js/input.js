@@ -2,15 +2,12 @@
 import { 
   port, reader, isConnected, camera,
   hasGun, hasKnife, currentWeapon, fpsOverlay, fpsOverlayActive,
-  tankMode, tankMoving, playerPosition, tankPosition, tankRotation, tankModeEnterTime, setIsConnected, isTurning, setCurrentWeapon,
-  setIsTurning, setPort, setReader, setTankMoving, setTankMode, setPlayerRotation, setPreserveRotationOnMapLoad
+  tankMode, tankMoving, playerPosition, tankPosition, tankRotation, tankModeEnterTime, setIsConnected, setCurrentWeapon,
+  setIsTurning, setPort, setReader, setTankMoving, setTankMode, setPlayerRotation, setPreserveRotationOnMapLoad, updateAvailableWeapons
 } from './state.js';
-import { toggleFPSOverlay, shootRecoil, playReloadAnimation } from './fps.js';
+import { toggleFPSOverlay, shootRecoil } from './fps.js';
 import { playFootstep } from './audio.js';
 import { makeStep } from './movement.js';
-import { startTankAnimation, stopTankAnimation, removeTankModel } from './tank.js';
-import { updateCameraPosition, getGroundHeight } from './movement.js';
-import { stopTankAudio } from './audio.js';
 import { loadMap } from './maps.js';
 
 // Initialize button state tracking for regular mode
@@ -25,7 +22,6 @@ export function handleKeyPress(event) {
     
     // Disable weapon switching and FPS overlays in tank mode
     if (tankMode) {
-      console.log('Tank mode - weapon/FPS overlay disabled');
       return;
     }
     
@@ -38,9 +34,7 @@ export function handleKeyPress(event) {
         toggleFPSOverlay();
       } else {
         // If currentWeapon is 'none', cycle to first available weapon
-        const availableWeapons = [];
-        if (hasGun) availableWeapons.push('glock');
-        if (hasKnife) availableWeapons.push('knife');
+        const availableWeapons = updateAvailableWeapons();
         if (availableWeapons.length > 0) {
           setCurrentWeapon(availableWeapons[0]);
           toggleFPSOverlay();
@@ -52,14 +46,8 @@ export function handleKeyPress(event) {
     
     // Z key pressed for shooting/slashing
     
-    if (tankMode) {
-      // Prevent immediate exit - require at least 1 second in tank mode
-      const timeSinceEnter = Date.now() - tankModeEnterTime;
-      
-      if (timeSinceEnter > 1000) {
-        exitTankMode();
-      }
-    } else if (currentWeapon !== 'none' && fpsOverlayActive && fpsOverlay) {
+    // Tank mode exit now handled by interaction object, not Z key
+    if (currentWeapon !== 'none' && fpsOverlayActive && fpsOverlay) {
       shootRecoil();
     }
   }
@@ -151,12 +139,6 @@ function parseMicrobitData(dataString) {
             
             setTankMoving(nowMoving);
             
-            // Handle animation start/stop
-            if (nowMoving && !wasMoving) {
-              startTankAnimation();
-            } else if (!nowMoving && wasMoving) {
-              stopTankAnimation();
-            }
           } else {
             // Regular mode: Button A continuous turning, Button B discrete steps
             setIsTurning(buttonAState === 1);
@@ -185,10 +167,7 @@ function parseMicrobitData(dataString) {
 
 // Switch between available weapons
 function switchWeapon() {
-  const availableWeapons = [];
-  if (hasGun) availableWeapons.push('glock');
-  if (hasKnife) availableWeapons.push('knife');
-  availableWeapons.push('none'); // Always include 'none' option
+  const availableWeapons = updateAvailableWeapons(true); // Include 'none' option
   
   if (availableWeapons.length > 1) {
     const currentIndex = availableWeapons.indexOf(currentWeapon);
@@ -200,12 +179,10 @@ function switchWeapon() {
       if (fpsOverlayActive) {
         toggleFPSOverlay();
       }
-      console.log('Switched to no weapon');
     } else {
       // Reload the overlay with the new weapon
       toggleFPSOverlay(); // Hide current
       toggleFPSOverlay(); // Show new
-      console.log(`Switched to ${availableWeapons[nextIndex]}`);
     }
   }
 }

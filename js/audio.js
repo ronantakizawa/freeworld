@@ -1,5 +1,5 @@
 // Audio system management
-import { audioContext, audioInitialized, currentBgMusic, setAudioInitialized } from './state.js';
+import { setAudioInitialized } from './state.js';
 import { mapConfigs } from './config.js';
 
 let footstepAudio;
@@ -10,7 +10,7 @@ let zombieAudio;
 // Initialize audio system
 export function initAudio() {
   try {
-    // Create audio context
+    // Create audio context Different browsers historically used different names for the API.
     window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
     
     // Create audio element for footsteps
@@ -18,7 +18,11 @@ export function initAudio() {
     footstepAudio.volume = 0.5;
     footstepAudio.preload = 'auto';
     
-    // Enable user interaction to unlock audio
+    // Start background music immediately
+    setAudioInitialized(true);
+    startBackgroundMusic();
+    
+    // Keep user interaction unlock as fallback for other audio
     document.addEventListener('click', unlockAudio, { once: true });
     document.addEventListener('touchstart', unlockAudio, { once: true });
     
@@ -83,10 +87,14 @@ export function switchBackgroundMusic(musicPath) {
     window.currentBgMusic.loop = true;
     window.currentBgMusic.preload = 'auto';
     
-    // Play the new music
-    window.currentBgMusic.play().catch(error => {
-      console.warn('Background music playback failed:', error);
-    });
+    // Play the new music with a small delay to avoid conflicts
+    setTimeout(() => {
+      if (window.currentBgMusic) {
+        window.currentBgMusic.play().catch(error => {
+          console.warn('Background music playback failed:', error);
+        });
+      }
+    }, 100);
     
   } catch (error) {
     console.warn('Background music switch failed:', error);
@@ -157,6 +165,9 @@ export function playKnifeSound() {
 export function startTankAudio() {
   if (!window.audioContext || window.audioContext.state === 'suspended') return;
   
+  // Don't start if already playing
+  if (tankAudio && !tankAudio.paused) return;
+  
   try {
     // Stop current background music
     if (window.currentBgMusic) {
@@ -180,8 +191,6 @@ export function startTankAudio() {
       console.warn('Tank audio playback failed:', error);
     });
     
-    console.log('Tank audio started');
-    
   } catch (error) {
     console.warn('Tank audio start failed:', error);
   }
@@ -200,10 +209,7 @@ export function stopTankAudio() {
     // Resume background music for city
     switchBackgroundMusic(mapConfigs.city.bgMusic);
     
-    console.log('Tank audio stopped, background music resumed');
-    
   } catch (error) {
-    console.warn('Tank audio stop failed:', error);
   }
 }
 
@@ -246,5 +252,35 @@ export function stopZombieAudio() {
     }
   } catch (error) {
     console.warn('Zombie audio stop failed:', error);
+  }
+}
+
+// Play damage sound
+export function playDamageSound() {
+  if (window.audioContext && window.audioContext.state !== 'suspended') {
+    try {
+      const damageAudio = new Audio('./damage.mp3');
+      damageAudio.volume = 0.8;
+      damageAudio.play().catch(error => {
+        console.warn('Damage sound failed:', error);
+      });
+    } catch (error) {
+      console.warn('Damage sound error:', error);
+    }
+  }
+}
+
+// Play heartbeat sound
+export function playHeartbeatSound() {
+  if (window.audioContext && window.audioContext.state !== 'suspended') {
+    try {
+      const heartbeatAudio = new Audio('./heartbeat.mp3');
+      heartbeatAudio.volume = 1.5;
+      heartbeatAudio.play().catch(error => {
+        console.warn('Heartbeat sound failed:', error);
+      });
+    } catch (error) {
+      console.warn('Heartbeat sound error:', error);
+    }
   }
 }

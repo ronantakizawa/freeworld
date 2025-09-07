@@ -2,40 +2,29 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { 
-  scene, camera, tankMode, tankModel, tankMixer, tankPosition, tankRotation,
-  setTankModel, setTankMixer, setTankRotation, animationMixers, collisionObjects, raycaster
+  scene, camera, tankMode, tankModel, tankPosition, tankRotation,
+  setTankModel, setTankRotation
 } from './state.js';
 import { MOVEMENT_CONFIG } from './config.js';
-import { getMapBoundaries } from './maps.js';
+import { checkCollision, getGroundHeight } from './movement.js';
+import { checkInteractions } from './interactions.js';
 
 // Load and setup tank model
 export function loadTankModel() {
-  console.log('Loading tank model...');
   const loader = new GLTFLoader();
   
   loader.load('./tank.glb', function(gltf) {
-    console.log('Tank GLB loaded successfully', gltf);
     const tank = gltf.scene;
     
-    // Position tank on ground
+    // Position tank on ground with correct height
+    const correctHeight = getGroundHeight(tankPosition.x, tankPosition.z);
+    tankPosition.y = correctHeight;
     tank.position.copy(tankPosition);
     tank.rotation.y = tankRotation;
-    tank.scale.set(0.4, 0.35, 0.4); // 2.5x smaller (2x bigger than before)
+    tank.scale.set(0.4, 0.2, 0.4); 
     
-    // Setup animations if they exist
-    let mixer = null;
-    if (gltf.animations && gltf.animations.length > 0) {
-      mixer = new THREE.AnimationMixer(tank);
-      setTankMixer(mixer);
-      animationMixers.push(mixer);
-      
-      console.log(`Tank has ${gltf.animations.length} animations available`);
-      gltf.animations.forEach((clip, index) => {
-        console.log(`Animation ${index}: ${clip.name}, Duration: ${clip.duration}s`);
-      });
-    }
     
-    // Fix materials
+    // Fix materials and ensure proper coloring
     tank.traverse(function(child) {
       if (child.isMesh) {
         child.castShadow = true;
@@ -43,20 +32,35 @@ export function loadTankModel() {
         
         if (child.material) {
           if (Array.isArray(child.material)) {
-            child.material = child.material.map(material => {
-              if (material.uniforms || material.type === 'ShaderMaterial') {
-                return new THREE.MeshLambertMaterial({ 
-                  color: material.color || 0x444444,
-                  map: material.map || null
-                });
+            child.material = child.material.map((material) => {
+              // Convert all materials to Lambert to ensure consistent lighting
+              const newMaterial = new THREE.MeshLambertMaterial({ 
+                color: material.color || 0x228B22, // Use original color or forest green
+                transparent: material.transparent || false,
+                opacity: material.opacity || 1.0
+              });
+              
+              // Only use texture map if it's not a blob URL (which causes loading errors)
+              if (material.map && !material.map.image?.src?.startsWith('blob:')) {
+                newMaterial.map = material.map;
               }
-              return material;
+              
+              return newMaterial;
             });
-          } else if (child.material.uniforms || child.material.type === 'ShaderMaterial') {
-            child.material = new THREE.MeshLambertMaterial({ 
-              color: child.material.color || 0x444444,
-              map: child.material.map || null
+          } else {
+            // Convert single material to Lambert
+            const newMaterial = new THREE.MeshLambertMaterial({ 
+              color: child.material.color || 0x228B22, // Use original color or forest green
+              transparent: child.material.transparent || false,
+              opacity: child.material.opacity || 1.0
             });
+            
+            // Only use texture map if it's not a blob URL (which causes loading errors)
+            if (child.material.map && !child.material.map.image?.src?.startsWith('blob:')) {
+              newMaterial.map = child.material.map;
+            }
+            
+            child.material = newMaterial;
           }
         }
       }
@@ -66,7 +70,6 @@ export function loadTankModel() {
     setTankModel(tank);
     updateTankCamera();
     
-    console.log('Tank loaded and added to scene');
     
   }, undefined, function(error) {
     console.error('Tank loading error:', error);
@@ -77,17 +80,6 @@ export function loadTankModel() {
 export function removeTankModel() {
   if (tankModel) {
     scene.remove(tankModel);
-    
-    // Clean up mixer
-    if (tankMixer) {
-      const mixerIndex = animationMixers.indexOf(tankMixer);
-      if (mixerIndex > -1) {
-        animationMixers.splice(mixerIndex, 1);
-      }
-      tankMixer.stopAllAction();
-      setTankMixer(null);
-    }
-    
     setTankModel(null);
   }
 }
@@ -99,76 +91,60 @@ export function moveTankForward(deltaTime) {
   }
   
   // Calculate movement speed (adjusted for continuous movement)
-  const moveSpeed = MOVEMENT_CONFIG.stepSize * 10; // Smaller step sizes for tank
+  const moveSpeed = MOVEMENT_CONFIG.stepSize * 5; // Smaller step sizes for tank
   
-  // Calculate new position
-  const forward = new THREE.Vector3(0, 0, -moveSpeed * deltaTime);
-  forward.applyAxisAngle(new THREE.Vector3(0, 1, 0), tankRotation);
+  // Calculate movement direction (same as regular movement system)
+  const forward = new THREE.Vector3(
+    -Math.sin(tankRotation),
+    0,
+    -Math.cos(tankRotation)
+  );
   
-  // Check for collisions with buildings and objects
-  const direction = forward.clone().normalize();
-  raycaster.set(tankPosition, direction);
-  const intersects = raycaster.intersectObjects(collisionObjects, true);
-  if (intersects.length > 0 && intersects[0].distance < moveSpeed * deltaTime + 1.0) {
-    return; // Block tank movement
-  }
+  // Scale by movement distance for this frame
+  const moveDistance = moveSpeed * deltaTime;
+  const movementVector = forward.clone().multiplyScalar(moveDistance);
   
-  // Check actual map boundaries for tank movement
-  const newX = tankPosition.x + forward.x;
-  const newZ = tankPosition.z + forward.z;
+  // Enhanced collision detection for tank - check multiple points around the tank
+  const tankWidth = 2.0; // Tank is wider than player, account for its size
+  const forwardNorm = forward.clone().normalize();
+  const rightNorm = new THREE.Vector3().crossVectors(forwardNorm, new THREE.Vector3(0, 1, 0));
   
-  const boundaries = getMapBoundaries();
-  if (boundaries) {
-    // Add small buffer to boundaries for smoother tank experience
-    const buffer = 5;
-    if (newX < boundaries.minX + buffer || newX > boundaries.maxX - buffer ||
-        newZ < boundaries.minZ + buffer || newZ > boundaries.maxZ - buffer) {
-      return; // Block tank movement
+  // Check collision at tank center and corners
+  const checkPoints = [
+    tankPosition.clone(), // Center
+    tankPosition.clone().add(rightNorm.clone().multiplyScalar(tankWidth * 0.5)), // Right side
+    tankPosition.clone().add(rightNorm.clone().multiplyScalar(-tankWidth * 0.5)), // Left side
+  ];
+  
+  // Check collision for each point
+  for (const point of checkPoints) {
+    if (checkCollision(movementVector, point)) {
+      return; // Block tank movement if any point collides
     }
   }
   
-  tankPosition.add(forward);
+  tankPosition.add(movementVector);
+  
+  // Update tank Y position based on ground height (like regular player movement)
+  const correctHeight = getGroundHeight(tankPosition.x, tankPosition.z);
+  tankPosition.y = correctHeight;
+  
   tankModel.position.copy(tankPosition);
   
   updateTankCamera();
 }
 
-// Start tank animation
-export function startTankAnimation() {
-  if (!tankMixer || tankMixer._actions.length === 0) return;
-  
-  const action = tankMixer._actions[0];
-  if (!action.isRunning()) {
-    action.reset();
-    action.setLoop(THREE.LoopRepeat);
-    action.play();
-  }
-}
-
-// Stop tank animation
-export function stopTankAnimation() {
-  if (!tankMixer || tankMixer._actions.length === 0) return;
-  
-  const action = tankMixer._actions[0];
-  if (action.isRunning()) {
-    action.stop();
-  }
-}
 
 // Turn tank
 export function turnTank() {
-  console.log('turnTank called', { tankModel: !!tankModel, tankMode });
   
   if (!tankModel || !tankMode) {
-    console.log('Tank turning blocked:', { tankModel: !!tankModel, tankMode });
     return;
   }
   
   const oldRotation = tankRotation;
   const tankTurnSpeed = MOVEMENT_CONFIG.turnSpeed * 0.5; // 100x smaller turning angle
   const newRotation = tankRotation + tankTurnSpeed;
-  
-  console.log('Tank turning:', { oldRotation, newRotation, originalTurnSpeed: MOVEMENT_CONFIG.turnSpeed, tankTurnSpeed });
   
   setTankRotation(newRotation);
   tankModel.rotation.y = newRotation;
@@ -195,5 +171,7 @@ function updateTankCamera() {
 export function updateTankCameraPosition() {
   if (tankMode && tankModel) {
     updateTankCamera();
+    // Check for interactions while in tank mode
+    checkInteractions();
   }
 }

@@ -3,24 +3,67 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { 
   scene, camera, playerPosition, interactionObjects, itemObjects, 
-  currentMap, animationMixers, hasGun, hasKnife, tankMode, tankPosition,
-  setHasGun, setHasKnife, setCurrentWeapon, setInteractionObjects, setItemObjects
+  currentMap, animationMixers, hasGun, tankMode, tankPosition, availableWeapons, isReturningToCity,
+  setHasGun, setHasKnife, setCurrentWeapon, setInteractionObjects, setItemObjects, updateAvailableWeapons
 } from './state.js';
 import { loadMap } from './maps.js';
 import { playReloadSound, playKnifeSound } from './audio.js';
+import { INTERACTION_CONFIGS, LABEL_CONFIG } from './config.js';
 
-let isReturningToCity = false;
+// Create a label mesh using config
+function createLabel(text, x, y, z) {
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  
+  // Use config for canvas setup
+  canvas.width = LABEL_CONFIG.canvas.width;
+  canvas.height = LABEL_CONFIG.canvas.height;
+  
+  // Background
+  context.fillStyle = LABEL_CONFIG.background.color;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Text
+  context.fillStyle = LABEL_CONFIG.text.color;
+  context.font = LABEL_CONFIG.text.font;
+  context.textAlign = LABEL_CONFIG.text.align;
+  context.fillText(text, LABEL_CONFIG.text.position.x, LABEL_CONFIG.text.position.y);
+  
+  // Create mesh
+  const texture = new THREE.CanvasTexture(canvas);
+  const labelMaterial = new THREE.MeshBasicMaterial({ 
+    map: texture, 
+    transparent: LABEL_CONFIG.mesh.transparent 
+  });
+  const labelGeometry = new THREE.PlaneGeometry(
+    LABEL_CONFIG.mesh.geometry.width, 
+    LABEL_CONFIG.mesh.geometry.height
+  );
+  const labelMesh = new THREE.Mesh(labelGeometry, labelMaterial);
+  labelMesh.position.set(x, y + LABEL_CONFIG.mesh.yOffset, z);
+  labelMesh.lookAt(camera.position);
+  
+  return labelMesh;
+}
 
 // Update the items list in the UI
 function updateItemsList() {
   const itemsListElement = document.getElementById('itemsList');
   if (!itemsListElement) return;
   
-  const items = [];
-  if (hasGun) items.push('Gun');
-  if (hasKnife) items.push('Knife');
+  // Update available weapons in state and get the current list
+  const weapons = updateAvailableWeapons();
   
-  itemsListElement.textContent = items.length > 0 ? items.join(', ') : 'None';
+  // Convert internal names to display names
+  const displayNames = weapons.map(weapon => {
+    switch(weapon) {
+      case 'gun': return 'Gun';
+      case 'knife': return 'Knife';
+      default: return weapon;
+    }
+  });
+  
+  itemsListElement.textContent = displayNames.length > 0 ? displayNames.join(', ') : 'None';
 }
 
 // Create an interactive object
@@ -33,26 +76,16 @@ export function createInteractionObject(targetMap, label, x, y, z, color) {
   object.castShadow = true;
   object.receiveShadow = true;
   
-  // Add text label
-  const canvas = document.createElement('canvas');
-  const context = canvas.getContext('2d');
-  canvas.width = 256;
-  canvas.height = 128;
-  context.fillStyle = 'rgba(0, 0, 0, 0.8)';
-  context.fillRect(0, 0, 256, 128);
-  context.fillStyle = 'white';
-  context.font = 'bold 32px Arial';
-  context.textAlign = 'center';
-  context.fillText(label, 128, 70);
+  // Mark as interaction object to exclude from collision detection
+  object.userData = { 
+    type: 'interaction', 
+    targetMap: targetMap, 
+    label: label,
+    isInteractionObject: true  // Key flag to exclude from collisions
+  };
   
-  const texture = new THREE.CanvasTexture(canvas);
-  const labelMaterial = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
-  const labelGeometry = new THREE.PlaneGeometry(2, 1);
-  const labelMesh = new THREE.Mesh(labelGeometry, labelMaterial);
-  labelMesh.position.set(x, y + 2, z);
-  labelMesh.lookAt(camera.position);
-  
-  object.userData = { type: 'interaction', targetMap: targetMap, label: label };
+  // Create label using config
+  const labelMesh = createLabel(label, x, y, z);
   
   scene.add(object);
   scene.add(labelMesh);
@@ -99,24 +132,8 @@ export function createTankInteractionObject(targetMap, x, y, z) {
       }
     });
     
-    // Add text label above tank
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    canvas.width = 256;
-    canvas.height = 128;
-    context.fillStyle = 'rgba(0, 0, 0, 0.8)';
-    context.fillRect(0, 0, 256, 128);
-    context.fillStyle = 'white';
-    context.font = 'bold 32px Arial';
-    context.textAlign = 'center';
-    context.fillText('TANK', 128, 70);
-    
-    const texture = new THREE.CanvasTexture(canvas);
-    const labelMaterial = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
-    const labelGeometry = new THREE.PlaneGeometry(2, 1);
-    const labelMesh = new THREE.Mesh(labelGeometry, labelMaterial);
-    labelMesh.position.set(x, y + 2, z);
-    labelMesh.lookAt(camera.position);
+    // Create label using config
+    const labelMesh = createLabel('TANK', x, y, z);
     
     tankObject.userData = { type: 'interaction', targetMap: targetMap, label: 'TANK' };
     
@@ -126,10 +143,7 @@ export function createTankInteractionObject(targetMap, x, y, z) {
     const newInteractionObjects = [...interactionObjects, { object: tankObject, label: labelMesh, targetMap: targetMap }];
     setInteractionObjects(newInteractionObjects);
     
-    console.log('Tank interaction object loaded');
-    
   }, undefined, function(error) {
-    console.warn('Tank interaction object failed to load:', error);
     // Fallback to regular interaction object
     createInteractionObject(targetMap, 'TANK', x, y, z, 0x4A4A4A);
   });
@@ -141,23 +155,36 @@ export function clearInteractionObjects() {
   interactionObjects.forEach(item => {
     scene.remove(item.object);
     scene.remove(item.label);
+    // Dispose of geometry and materials to prevent memory leaks
+    if (item.object.geometry) item.object.geometry.dispose();
+    if (item.object.material) {
+      if (Array.isArray(item.object.material)) {
+        item.object.material.forEach(material => material.dispose());
+      } else {
+        item.object.material.dispose();
+      }
+    }
+    if (item.label.geometry) item.label.geometry.dispose();
+    if (item.label.material) item.label.material.dispose();
   });
   setInteractionObjects([]);
 }
 
 // Add interaction objects based on map
 export function addInteractionObjects(mapType) {
-  if (mapType === 'city') {
-    createInteractionObject('subway', 'SUBWAY', 0, 0, 10, 0x00ff00);
-    createInteractionObject('silenthill', 'SILENT HILL', 10, 0, 0, 0x330033);
-    createTankInteractionObject('tank', -10, 0, 0); // Tank interaction in city
-  } else if (mapType === 'subway') {
-    createInteractionObject('city', 'CITY', -12, 0, -12, 0xff0000);
-  } else if (mapType === 'silenthill') {
-    createInteractionObject('city', 'CITY', 0, 0, 5, 0xff0000);
-  } else if (mapType === 'tank') {
-    // Remove city exit icon from tank mode - use Z key instead
-  }
+  const interactions = INTERACTION_CONFIGS[mapType];
+  if (!interactions) return;
+  
+  interactions.forEach(interaction => {
+    const { targetMap, label, position, color, type } = interaction;
+    const { x, y, z } = position;
+    
+    if (type === 'tank') {
+      createTankInteractionObject(targetMap, x, y, z);
+    } else {
+      createInteractionObject(targetMap, label, x, y, z, color);
+    }
+  });
 }
 
 // Check for interactions
@@ -170,10 +197,6 @@ export function checkInteractions() {
     const distance = playerPos.distanceTo(objectPos);
     
     if (distance < 2.0) {
-      if (currentMap === 'subway' && item.targetMap === 'city') {
-        isReturningToCity = true;
-      }
-      
       loadMap(item.targetMap);
     }
   });
@@ -200,11 +223,10 @@ export function checkInteractions() {
       const newItemObjects = itemObjects.filter((_, index) => index !== i);
       setItemObjects(newItemObjects);
       
-      if (item.itemType === 'glock') {
+      if (item.itemType === 'gun') {
         setHasGun(true);
-        setCurrentWeapon('glock');
+        setCurrentWeapon('gun');
         playReloadSound();
-        console.log('Glock picked up!');
         updateItemsList();
       } else if (item.itemType === 'knife') {
         setHasKnife(true);
@@ -212,7 +234,6 @@ export function checkInteractions() {
           setCurrentWeapon('knife');
         }
         playKnifeSound();
-        console.log('Knife picked up!');
         updateItemsList();
       }
     }

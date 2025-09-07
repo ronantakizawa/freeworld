@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { 
   scene, currentModel, playerPosition, tankPosition, playerRotation, preserveRotationOnMapLoad, fpsOverlayActive,
   setCurrentModel, setCurrentMap, setLastGroundHeight,
-  setCollisionObjects, setTankMode, setPreserveRotationOnMapLoad, setPlayerRotation
+  setCollisionObjects, setTankMode, setPreserveRotationOnMapLoad, setPlayerRotation, setCurrentWeapon
 } from './state.js';
 import { mapConfigs } from './config.js';
 import { switchBackgroundMusic, startTankAudio } from './audio.js';
@@ -86,8 +86,8 @@ export function loadMap(mapType) {
     
     setCollisionObjects(newCollisionObjects);
     
-    // Calculate map boundaries from the loaded model
-    calculateMapBoundaries(model);
+    // Set map boundaries from config
+    mapBoundaries = config.boundaries;
     
     scene.add(model);
     setCurrentModel(model);
@@ -107,24 +107,19 @@ export function loadMap(mapType) {
       // Keep the current player rotation that was set before map loading
       updateCameraPosition();
       setPreserveRotationOnMapLoad(false); // Reset flag
-      console.log('Preserved player rotation during map load:', playerRotation);
     } else {
       updateCameraPosition();
     }
     
     switchBackgroundMusic(config.bgMusic);
-    addInteractionObjects(mapType);
-    addItemsToMap(mapType);
     addLighting();
     updateEnvironmentEffects(mapType);
     
     // Handle tank mode
     if (config.tankMode) {
-      console.log('Activating tank mode, time:', Date.now());
       
       // Hide FPS overlay when entering tank mode
       if (fpsOverlayActive) {
-        console.log('Hiding FPS overlay for tank mode');
         toggleFPSOverlay();
       }
       
@@ -133,11 +128,37 @@ export function loadMap(mapType) {
       tankPosition.set(spawnX, config.groundLevel, spawnZ);
       loadTankModel();
       startTankAudio(); // Start tank audio and stop background music
-      console.log('Tank mode activated successfully');
+      
+      // Add interaction objects after tank mode is set
+      addInteractionObjects(mapType);
+      addItemsToMap(mapType);
     } else {
-      console.log('Deactivating tank mode');
       setTankMode(false);
       removeTankModel();
+      
+      // Add interaction objects for non-tank modes
+      addInteractionObjects(mapType);
+      addItemsToMap(mapType);
+    }
+    
+    // Handle Silent Hill specific settings
+    if (mapType === 'silenthill') {
+      setCurrentWeapon('none');
+      
+      // Hide FPS overlay when entering Silent Hill
+      if (fpsOverlayActive) {
+        toggleFPSOverlay();
+      }
+    }
+    
+    // Handle city specific settings when returning from Silent Hill
+    if (mapType === 'city') {
+      setCurrentWeapon('none');
+      
+      // Hide FPS overlay when entering City
+      if (fpsOverlayActive) {
+        toggleFPSOverlay();
+      }
     }
     
     hideLoadingScreen();
@@ -148,19 +169,18 @@ export function loadMap(mapType) {
     updateLoadingProgress(`Loading ${config.name}... ${Math.round(percentComplete)}%`);
   }, 
   function(error) {
-    console.error('Map loading error:', error);
     hideLoadingScreen();
     createPlaceholderGround();
   });
 }
 
 function addLighting() {
-  let ambientIntensity = 1.5;
-  let directionalIntensity = 1.8;
+  let ambientIntensity = 2.2; // Increased from 1.5
+  let directionalIntensity = 5; // Increased from 1.8
   
   if (window.currentMap === 'silenthill') {
-    ambientIntensity = 0.1;
-    directionalIntensity = 0.2;
+    ambientIntensity = 0.05;  // Reduced from 0.1 to 0.05
+    directionalIntensity = 0.1; // Reduced from 0.2 to 0.1
   }
   
   if (ambientLight) {
@@ -170,7 +190,7 @@ function addLighting() {
     scene.remove(directionalLight);
   }
   
-  ambientLight = new THREE.AmbientLight(0x606060, ambientIntensity);
+  ambientLight = new THREE.AmbientLight(0x808080, ambientIntensity); // Increased color from 0x606060 to 0x808080
   scene.add(ambientLight);
   
   directionalLight = new THREE.DirectionalLight(0xffffff, directionalIntensity);
@@ -285,22 +305,6 @@ function updateLoadingProgress(text) {
   }
 }
 
-// Calculate the boundaries of the loaded map model
-function calculateMapBoundaries(model) {
-  const box = new THREE.Box3();
-  box.setFromObject(model);
-  
-  mapBoundaries = {
-    minX: box.min.x,
-    maxX: box.max.x,
-    minZ: box.min.z,
-    maxZ: box.max.z,
-    minY: box.min.y,
-    maxY: box.max.y
-  };
-  
-  // Map boundaries calculated and stored
-}
 
 // Get current map boundaries (exported for use in movement system)
 export function getMapBoundaries() {

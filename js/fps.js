@@ -50,7 +50,7 @@ function loadFPSOverlay() {
   if (currentWeapon === 'knife') {
     modelPath = './knife_animated.glb';
   } else {
-    modelPath = './fps.glb'; // Default to glock
+    modelPath = './fps.glb'; // Default to gun
   }
   
   loader.load(modelPath, function(gltf) {
@@ -59,17 +59,14 @@ function loadFPSOverlay() {
     // Position the FPS overlay to overlap the screen view
     overlay.position.set(0, 2, -0.3);
     overlay.scale.set(0.01, 0.001, -0.01);
+  
     
     // Set up animations if they exist
     if (gltf.animations && gltf.animations.length > 0) {
       const mixer = new THREE.AnimationMixer(overlay);
       setFpsOverlayMixer(mixer);
       window.fpsOverlayAnimations = gltf.animations;
-      console.log(`FPS overlay has ${gltf.animations.length} animations available`);
-      
-      gltf.animations.forEach((clip, index) => {
-        console.log(`Animation ${index}: ${clip.name}, Duration: ${clip.duration}s`);
-      });
+
       
       // For knife, set stationary pose at second 2
       if (currentWeapon === 'knife' && gltf.animations.length > 0) {
@@ -83,7 +80,6 @@ function loadFPSOverlay() {
         action.play();
         action.paused = true; // Pause at this frame
         
-        console.log(`Knife set to stationary pose at ${stationaryTime}s`);
       }
     }
     
@@ -132,8 +128,6 @@ function loadFPSOverlay() {
     setFpsOverlay(overlay);
     updateFPSOverlayPosition();
     
-    console.log('FPS overlay loaded and added to scene');
-    
   }, undefined, function(error) {
     console.error('FPS overlay failed to load:', error);
   });
@@ -166,7 +160,7 @@ export function shootRecoil() {
     return;
   }
   
-  if (currentWeapon === 'glock') {
+  if (currentWeapon === 'gun') {
     playShotSound();
     // Check for target hits when shooting with gun
     checkTargetHit();
@@ -177,7 +171,7 @@ export function shootRecoil() {
       shotCounter = 0; // Reset counter
       // Trigger reload after the current shot animation completes
       setTimeout(() => {
-        if (currentWeapon === 'glock' && fpsOverlayActive && fpsOverlay && !isReloading) {
+        if (currentWeapon === 'gun' && fpsOverlayActive && fpsOverlay && !isReloading) {
           // Force stop current recoil animation first
           setIsRecoiling(false);
           playReloadAnimation();
@@ -206,7 +200,7 @@ export function shootRecoil() {
       startTime = Math.min(2, animationDuration);
       duration = Math.min(0.25, animationDuration - startTime); // 0.25 second duration
     } else {
-      // Play last second for glock
+      // Play last second for gun
       startTime = Math.max(0, animationDuration - 1);
       duration = 1;
     }
@@ -228,13 +222,11 @@ export function shootRecoil() {
         action.time = stationaryTime;
         action.play();
         action.paused = true; // Pause at stationary frame
-        console.log(`Knife returned to stationary pose at ${stationaryTime}s`);
       }
       
       setIsRecoiling(false);
     }, duration * 1000);
     
-    console.log(`Playing ${currentWeapon} animation: ${animation.name} (${startTime}s - ${startTime + duration}s)`);
   } else {
     // Fallback to simple recoil if no animation
     const recoilAmount = 0.05;

@@ -13,10 +13,17 @@ import { moveTankForward, turnTank, updateTankCameraPosition } from './tank.js';
 import { getMapBoundaries } from './maps.js';
 
 // Check for collisions in a given direction
-export function checkCollision(direction) {
-  // Check actual map boundaries for city and subway maps
-  const newX = playerPosition.x + direction.x * MOVEMENT_CONFIG.stepSize;
-  const newZ = playerPosition.z + direction.z * MOVEMENT_CONFIG.stepSize;
+export function checkCollision(direction, fromPosition = null) {
+  // Use provided position or default to player position
+  const currentPosition = fromPosition || playerPosition;
+  
+  // For tank movement, direction already includes the movement distance
+  // For regular movement, direction needs to be scaled by step size
+  const isScaled = direction.length() > 1; // If length > 1, it's already scaled
+  const stepSize = isScaled ? direction.length() : MOVEMENT_CONFIG.stepSize;
+  
+  const newX = currentPosition.x + (isScaled ? direction.x : direction.x * MOVEMENT_CONFIG.stepSize);
+  const newZ = currentPosition.z + (isScaled ? direction.z : direction.z * MOVEMENT_CONFIG.stepSize);
   
   if (currentMap === 'city' || currentMap === 'subway') {
     const boundaries = getMapBoundaries();
@@ -25,16 +32,21 @@ export function checkCollision(direction) {
       const buffer = 5;
       if (newX < boundaries.minX + buffer || newX > boundaries.maxX - buffer ||
           newZ < boundaries.minZ + buffer || newZ > boundaries.maxZ - buffer) {
-        console.log('Map boundary collision detected at:', newX, newZ, 'Boundaries:', boundaries);
         return true; // Block movement
       }
     }
   }
   
-  // Original collision detection with objects
-  raycaster.set(playerPosition, direction.normalize());
+  // Original collision detection with objects (exclude interaction objects)
+  raycaster.set(currentPosition, direction.clone().normalize());
   const intersects = raycaster.intersectObjects(collisionObjects, true);
-  return intersects.length > 0 && intersects[0].distance < MOVEMENT_CONFIG.stepSize + 0.5;
+  
+  // Filter out interaction objects
+  const collisionIntersects = intersects.filter(intersect => 
+    !intersect.object.userData.isInteractionObject
+  );
+  
+  return collisionIntersects.length > 0 && collisionIntersects[0].distance < stepSize + 0.5;
 }
 
 // Make a discrete movement step

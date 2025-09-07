@@ -2,7 +2,8 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { scene, itemObjects, animationMixers, hasGun, hasKnife, setItemObjects, camera, playerPosition, currentMap } from './state.js';
-import { startZombieAudio, stopZombieAudio } from './audio.js';
+import { startZombieAudio, stopZombieAudio, playDamageSound, playHeartbeatSound } from './audio.js';
+import { showDamageEffect, showDeathEffect, updateProgressiveDamage } from './main.js';
 
 // Arrays to track marks for cleanup
 let slashMarks = [];
@@ -27,11 +28,10 @@ export function clearItemObjects() {
   });
   bulletHoles = [];
   
-  console.log('Cleared all items, slash marks, and bullet holes');
 }
 
 // Load and place an item in the scene
-export function loadItem(itemPath, x, y, z, scale = 1.0, itemType = 'glock') {
+export function loadItem(itemPath, x, y, z, scale = 1.0, itemType = 'gun') {
   // Loading item silently
   const loader = new GLTFLoader();
   
@@ -77,7 +77,6 @@ export function loadItem(itemPath, x, y, z, scale = 1.0, itemType = 'glock') {
       });
       
       animationMixers.push(mixer);
-      console.log(`Loaded ${gltf.animations.length} animations for item`);
     }
     
     // Fix material issues
@@ -90,10 +89,18 @@ export function loadItem(itemPath, x, y, z, scale = 1.0, itemType = 'glock') {
           if (Array.isArray(child.material)) {
             child.material = child.material.map(material => {
               if (material.uniforms || material.type === 'ShaderMaterial') {
-                return new THREE.MeshLambertMaterial({ 
+                const newMaterial = new THREE.MeshLambertMaterial({ 
                   color: material.color || 0x888888,
-                  map: material.map || null
+                  transparent: material.transparent || false,
+                  opacity: material.opacity || 1.0
                 });
+                
+                // Only use texture map if it's not a blob URL (which causes loading errors)
+                if (material.map && !material.map.image?.src?.startsWith('blob:')) {
+                  newMaterial.map = material.map;
+                }
+                
+                return newMaterial;
               }
               
               // Make targets more visible in dark environments
@@ -114,10 +121,18 @@ export function loadItem(itemPath, x, y, z, scale = 1.0, itemType = 'glock') {
               return material;
             });
           } else if (child.material.uniforms || child.material.type === 'ShaderMaterial') {
-            child.material = new THREE.MeshLambertMaterial({ 
+            const newMaterial = new THREE.MeshLambertMaterial({ 
               color: child.material.color || 0x888888,
-              map: child.material.map || null
+              transparent: child.material.transparent || false,
+              opacity: child.material.opacity || 1.0
             });
+            
+            // Only use texture map if it's not a blob URL (which causes loading errors)
+            if (child.material.map && !child.material.map.image?.src?.startsWith('blob:')) {
+              newMaterial.map = child.material.map;
+            }
+            
+            child.material = newMaterial;
           }
           
           // Make targets more visible in dark environments
@@ -152,7 +167,7 @@ export function loadItem(itemPath, x, y, z, scale = 1.0, itemType = 'glock') {
 // Add items to specific maps
 export function addItemsToMap(mapType) {
   if (mapType === 'city' && !hasGun) {
-    loadItem('./glock.glb', 0, -1, -4, 4.0, 'glock');
+    loadItem('./gun.glb', 0, -1, -4, 4.0, 'gun');
   }
   if (mapType === 'city' && !hasKnife) {
     loadItem('./knife.glb', 5, 0, -6, 0.075, 'knife');
@@ -179,7 +194,7 @@ export function addItemsToMap(mapType) {
 // Rotate items continuously (only if no GLB animation, exclude targets)
 export function rotateItems() {
   itemObjects.forEach(item => {
-    if ((item.itemType === 'glock' || item.itemType === 'knife') && !item.mixer) {
+    if ((item.itemType === 'gun' || item.itemType === 'knife') && !item.mixer) {
       item.object.rotation.y += 0.02;
     }
     // Targets should never rotate - keep their 90 degree counter-clockwise position
@@ -220,32 +235,27 @@ export function checkTargetHit() {
     if (intersects.length > 0) {
       const hit = intersects[0];
       addBulletHole(hit.point);
-      console.log('Target hit at:', hit.point);
     }
   }
   
-  // Check for zombie hits within 5.0 units
+  // Check for zombie hits - no distance restriction, just raycaster hits
   const zombies = itemObjects.filter(item => item.itemType === 'zombie');
   
   zombies.forEach((zombie) => {
-    const distance = playerPosition.distanceTo(zombie.object.position);
+    // Check if the raycaster intersects with this zombie
+    const zombieMeshes = [];
+    zombie.object.traverse(child => {
+      if (child.isMesh) {
+        zombieMeshes.push(child);
+      }
+    });
     
-    if (distance <= 5.0) {
-      // Check if the raycaster intersects with this zombie
-      const zombieMeshes = [];
-      zombie.object.traverse(child => {
-        if (child.isMesh) {
-          zombieMeshes.push(child);
-        }
-      });
+    if (zombieMeshes.length > 0) {
+      const zombieIntersects = raycaster.intersectObjects(zombieMeshes);
       
-      if (zombieMeshes.length > 0) {
-        const zombieIntersects = raycaster.intersectObjects(zombieMeshes);
-        
-        if (zombieIntersects.length > 0) {
-          flipZombie(zombie);
-          return; // Exit after flipping to avoid issues with array modification
-        }
+      if (zombieIntersects.length > 0) {
+        flipZombie(zombie);
+        return; // Exit after flipping to avoid issues with array modification
       }
     }
   });
@@ -304,7 +314,6 @@ function addBulletHole(hitPoint) {
   // Add the bullet hole to the scene
   scene.add(bulletHole);
   
-  console.log('Bullet hole added at:', bulletHole.position);
 }
 
 // Add a slash mark (black line) to a target
@@ -373,6 +382,14 @@ function flipZombie(zombie) {
   zombie.object.userData.flipped = true;
 }
 
+// Track damage cooldown to prevent spam
+let lastDamageTime = 0;
+const damageCooldown = 2000; // 2 seconds between damage instances
+
+// Track damage counter for death system
+let damageCount = 0;
+const maxDamageCount = 5;
+
 // Check proximity to zombies and manage audio
 export function checkZombieProximity() {
   if (currentMap !== 'silenthill') {
@@ -389,8 +406,12 @@ export function checkZombieProximity() {
     return;
   }
   
-  // Check if player is within 5.0 units of any non-flipped zombie
+  // Check if player is within 5.0 units of any non-flipped zombie for audio
+  // Check if player is within 1.0 units of any non-flipped zombie for damage
   let nearZombie = false;
+  let takeDamage = false;
+  const currentTime = Date.now();
+  
   zombies.forEach(zombie => {
     // Skip flipped zombies
     if (zombie.object.userData.flipped) {
@@ -398,10 +419,40 @@ export function checkZombieProximity() {
     }
     
     const distance = playerPosition.distanceTo(zombie.object.position);
+    
+    // Audio proximity check (5.0 units)
     if (distance <= 5.0) {
       nearZombie = true;
     }
+    
+    // Damage proximity check (1.0 units) with cooldown
+    if (distance <= 1.0 && (currentTime - lastDamageTime) > damageCooldown) {
+      takeDamage = true;
+    }
   });
+  
+  // Handle damage
+  if (takeDamage) {
+    lastDamageTime = currentTime;
+    damageCount++;
+    
+    playDamageSound();
+    showDamageEffect();
+    updateProgressiveDamage(damageCount); // Update progressive red overlay
+    
+    // Check if player has taken max damage
+    if (damageCount >= maxDamageCount) {
+      
+      // Play heartbeat sound twice with delay
+      playHeartbeatSound();
+      setTimeout(() => {
+        playHeartbeatSound();
+      }, 1500); // Play second heartbeat after 1.5 seconds
+      
+      // Start death fade effect
+      showDeathEffect();
+    }
+  }
   
   // Start or stop zombie audio based on proximity
   if (nearZombie) {

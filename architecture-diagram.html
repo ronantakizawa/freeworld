@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FPS City Explorer - Project Architecture</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #000;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border: 2px solid #000;
+        }
+        
+        h1 {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-bottom: 3px solid #000;
+            padding-bottom: 10px;
+        }
+        
+        .architecture {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .layer {
+            border: 2px solid #000;
+            padding: 20px;
+            background-color: #fff;
+        }
+        
+        .layer h2 {
+            text-align: center;
+            margin: 0 0 15px 0;
+            font-size: 16px;
+            background-color: #000;
+            color: white;
+            padding: 8px;
+            text-transform: uppercase;
+        }
+        
+        .module {
+            border: 1px solid #333;
+            margin: 8px 0;
+            padding: 8px;
+            background-color: #f9f9f9;
+            font-size: 12px;
+        }
+        
+        .module-name {
+            font-weight: bold;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+        
+        .module-desc {
+            font-size: 10px;
+            color: #666;
+            line-height: 1.2;
+        }
+        
+        .entry-point {
+            background-color: #e0e0e0 !important;
+            border: 3px solid #000;
+        }
+        
+        .core-system {
+            background-color: #f0f0f0 !important;
+        }
+        
+        .game-content {
+            background-color: #f9f9f9 !important;
+        }
+        
+        .data-flow {
+            margin-top: 40px;
+            border: 2px solid #000;
+            padding: 20px;
+            background-color: #f8f8f8;
+        }
+        
+        .data-flow h2 {
+            text-align: center;
+            margin: 0 0 20px 0;
+            background-color: #000;
+            color: white;
+            padding: 10px;
+            text-transform: uppercase;
+        }
+        
+        .flow-diagram {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .flow-box {
+            border: 2px solid #000;
+            padding: 10px;
+            background-color: white;
+            flex: 1;
+            min-width: 120px;
+            text-align: center;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .arrow {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .legend {
+            margin-top: 30px;
+            border: 1px solid #000;
+            padding: 15px;
+            background-color: #f0f0f0;
+        }
+        
+        .legend h3 {
+            margin: 0 0 10px 0;
+            text-transform: uppercase;
+            font-size: 14px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+            font-size: 12px;
+        }
+        
+        .legend-box {
+            width: 20px;
+            height: 15px;
+            border: 1px solid #000;
+            margin-right: 10px;
+        }
+        
+        .dependencies {
+            margin-top: 30px;
+            border: 2px solid #000;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .dependencies h2 {
+            text-align: center;
+            margin: 0 0 15px 0;
+            background-color: #000;
+            color: white;
+            padding: 8px;
+            text-transform: uppercase;
+        }
+        
+        .dep-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .dep-category {
+            border: 1px solid #000;
+            padding: 10px;
+            background-color: white;
+        }
+        
+        .dep-category h3 {
+            margin: 0 0 8px 0;
+            font-size: 12px;
+            text-transform: uppercase;
+            background-color: #333;
+            color: white;
+            padding: 4px;
+            text-align: center;
+        }
+        
+        .dep-list {
+            font-size: 10px;
+            line-height: 1.4;
+        }
+        
+        @media (max-width: 768px) {
+            .architecture {
+                grid-template-columns: 1fr;
+            }
+            
+            .flow-diagram {
+                flex-direction: column;
+            }
+            
+            .arrow {
+                transform: rotate(90deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>FPS City Explorer - Project Architecture</h1>
+        
+        <div class="architecture">
+            <!-- Core Application Layer -->
+            <div class="layer">
+                <h2>Core Application</h2>
+                
+                <div class="module entry-point">
+                    <div class="module-name">index.html</div>
+                    <div class="module-desc">Entry point, UI container, Three.js imports</div>
+                </div>
+                
+                <div class="module entry-point">
+                    <div class="module-name">main.js</div>
+                    <div class="module-desc">Application initialization, animation loop, coordinates all modules</div>
+                </div>
+                
+                <div class="module core-system">
+                    <div class="module-name">state.js</div>
+                    <div class="module-desc">Global state management, getters/setters, cross-module communication hub</div>
+                </div>
+                
+                <div class="module core-system">
+                    <div class="module-name">input.js</div>
+                    <div class="module-desc">Keyboard/MicroBit handling, weapon switching, tank controls</div>
+                </div>
+            </div>
+            
+            <!-- Game Systems Layer -->
+            <div class="layer">
+                <h2>Game Systems</h2>
+                
+                <div class="module core-system">
+                    <div class="module-name">config.js</div>
+                    <div class="module-desc">Map configurations, game constants, centralized settings</div>
+                </div>
+                
+                <div class="module core-system">
+                    <div class="module-name">movement.js</div>
+                    <div class="module-desc">Player/tank movement, camera controls, collision detection, ground following</div>
+                </div>
+                
+                <div class="module core-system">
+                    <div class="module-name">audio.js</div>
+                    <div class="module-desc">Sound system, background music, spatial audio, Web Audio API</div>
+                </div>
+                
+                <div class="module core-system">
+                    <div class="module-name">fps.js</div>
+                    <div class="module-desc">First-person weapon overlay, animations, recoil, auto-reload</div>
+                </div>
+            </div>
+            
+            <!-- Game Content Layer -->
+            <div class="layer">
+                <h2>Game Content</h2>
+                
+                <div class="module game-content">
+                    <div class="module-name">maps.js</div>
+                    <div class="module-desc">Environment loading, map switching, lighting, fog effects</div>
+                </div>
+                
+                <div class="module game-content">
+                    <div class="module-name">items.js</div>
+                    <div class="module-desc">Collectibles, targets, zombies, combat system, animations</div>
+                </div>
+                
+                <div class="module game-content">
+                    <div class="module-name">interactions.js</div>
+                    <div class="module-desc">Object interactions, item pickup, UI updates, map transitions</div>
+                </div>
+                
+                <div class="module game-content">
+                    <div class="module-name">tank.js</div>
+                    <div class="module-desc">Tank mode functionality, vehicle physics, specialized camera</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="data-flow">
+            <h2>Data Flow & System Integration</h2>
+            <div class="flow-diagram">
+                <div class="flow-box">User Input<br>(MicroBit/Keyboard)</div>
+                <div class="arrow">→</div>
+                <div class="flow-box">input.js<br>Processing</div>
+                <div class="arrow">→</div>
+                <div class="flow-box">state.js<br>State Updates</div>
+                <div class="arrow">→</div>
+                <div class="flow-box">Game Systems<br>Response</div>
+                <div class="arrow">→</div>
+                <div class="flow-box">Three.js<br>Rendering</div>
+            </div>
+        </div>
+        
+        <div class="dependencies">
+            <h2>External Dependencies & Technologies</h2>
+            <div class="dep-grid">
+                <div class="dep-category">
+                    <h3>3D Graphics</h3>
+                    <div class="dep-list">
+                        • Three.js (WebGL rendering)<br>
+                        • GLTFLoader (3D model loading)<br>
+                        • AnimationMixer (animations)<br>
+                        • Raycaster (collision detection)
+                    </div>
+                </div>
+                
+                <div class="dep-category">
+                    <h3>Hardware Integration</h3>
+                    <div class="dep-list">
+                        • Web Serial API (MicroBit comm)<br>
+                        • Keyboard event listeners<br>
+                        • USB device management<br>
+                        • Serial data parsing
+                    </div>
+                </div>
+                
+                <div class="dep-category">
+                    <h3>Audio System</h3>
+                    <div class="dep-list">
+                        • Web Audio API<br>
+                        • HTML5 Audio elements<br>
+                        • AudioContext management<br>
+                        • Spatial audio positioning
+                    </div>
+                </div>
+                
+                <div class="dep-category">
+                    <h3>Asset Management</h3>
+                    <div class="dep-list">
+                        • GLB 3D models (environments)<br>
+                        • MP3/WAV audio files<br>
+                        • Texture loading and caching<br>
+                        • Asset cleanup and memory mgmt
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <h3>Module Types Legend</h3>
+            <div class="legend-item">
+                <div class="legend-box" style="background-color: #e0e0e0; border: 3px solid #000;"></div>
+                <span><strong>Entry Points:</strong> Application initialization and main coordination</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box" style="background-color: #f0f0f0;"></div>
+                <span><strong>Core Systems:</strong> Fundamental game mechanics and state management</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box" style="background-color: #f9f9f9;"></div>
+                <span><strong>Game Content:</strong> Specific features, content, and interactive elements</span>
+            </div>
+        </div>
+
+        <div class="dependencies">
+            <h2>Technical Implementation Details</h2>
+            
+            <div class="dep-category" style="margin-bottom: 20px;">
+                <h3>Camera System & Angles</h3>
+                <div class="dep-list" style="font-size: 11px; line-height: 1.5;">
+                    <strong>First-Person Camera (movement.js):</strong><br>
+                    • Uses Three.js PerspectiveCamera with 75° FOV<br>
+                    • Position follows playerPosition vector with Y offset for eye height<br>
+                    • Rotation controlled by playerRotation variable (Y-axis rotation)<br>
+                    • Camera bobbing during movement: sin wave applied to Y position<br>
+                    • Ground height detection via raycasting for terrain following<br><br>
+                    
+                    <strong>Tank Camera Mode:</strong><br>
+                    • Switches to third-person perspective when entering tank<br>
+                    • Camera positioned behind and above tank (offset: -3, 2, 0)<br>
+                    • Uses camera.lookAt() to focus on tank position<br>
+                    • Tank rotation affects camera angle via quaternion updates<br>
+                    • Smooth interpolation between first-person and tank camera
+                </div>
+            </div>
+            
+            <div class="dep-category" style="margin-bottom: 20px;">
+                <h3>FPS Weapon Overlay System</h3>
+                <div class="dep-list" style="font-size: 11px; line-height: 1.5;">
+                    <strong>Implementation (fps.js):</strong><br>
+                    • Separate scene for weapon overlay rendered on top of main scene<br>
+                    • Uses OrthographicCamera for 2D weapon positioning<br>
+                    • GLTFLoader loads weapon models (glock.glb, knife.glb)<br>
+                    • AnimationMixer handles weapon animations (reload, recoil, slash)<br>
+                    • Weapon positioned at fixed screen coordinates (bottom-right)<br><br>
+                    
+                    <strong>Animation System:</strong><br>
+                    • Recoil: translateY animation + rotation for gun kickback<br>
+                    • Reload: plays specific timeframe (4s-6.5s) of glock animation<br>
+                    • Auto-reload triggers every 3rd shot with shotCounter<br>
+                    • Knife: stationary at 2s mark, slash animation 2s-2.25s
+                </div>
+            </div>
+            
+            <div class="dep-category" style="margin-bottom: 20px;">
+                <h3>APIs & Web Technologies Used</h3>
+                <div class="dep-list" style="font-size: 11px; line-height: 1.5;">
+                    <strong>Core Web APIs:</strong><br>
+                    • <u>Web Serial API:</u> MicroBit USB communication via navigator.serial<br>
+                    • <u>Web Audio API:</u> AudioContext for spatial audio and sound management<br>
+                    • <u>WebGL:</u> Hardware-accelerated 3D rendering via Three.js<br>
+                    • <u>File API:</u> Loading GLB models and audio assets<br>
+                    • <u>RequestAnimationFrame:</u> 60fps animation loop timing<br><br>
+                    
+                    <strong>Three.js Specific APIs:</strong><br>
+                    • GLTFLoader for 3D model import<br>
+                    • AnimationMixer for GLB animation playback<br>
+                    • Raycaster for collision detection and mouse/touch picking<br>
+                    • Material system for lighting and textures
+                </div>
+            </div>
+            
+            <div class="dep-category" style="margin-bottom: 20px;">
+                <h3>Player Movement & Walking System</h3>
+                <div class="dep-list" style="font-size: 11px; line-height: 1.5;">
+                    <strong>Walking Mechanics (movement.js):</strong><br>
+                    • Discrete step system: each button press = one forward step<br>
+                    • Step distance: 0.5 units in facing direction<br>
+                    • Direction calculated via: cos(playerRotation), sin(playerRotation)<br>
+                    • Collision detection: raycaster checks for obstacles before movement<br>
+                    • Ground following: Y position adjusted based on terrain height<br><br>
+                    
+                    <strong>Camera Bobbing:</strong><br>
+                    • Vertical oscillation during movement using sin(time * frequency)<br>
+                    • Amplitude: 0.1 units, frequency: 4 Hz<br>
+                    • Creates realistic walking animation feel<br>
+                    • Footstep audio synchronized with bob cycle
+                </div>
+            </div>
+            
+            <div class="dep-category" style="margin-bottom: 20px;">
+                <h3>Turning & Rotation System</h3>
+                <div class="dep-list" style="font-size: 11px; line-height: 1.5;">
+                    <strong>Turning Mechanics (input.js, movement.js):</strong><br>
+                    • Continuous turning while Button A held (MicroBit) or key pressed<br>
+                    • Rotation speed: 2.0 radians/second (about 115°/sec)<br>
+                    • playerRotation updated in animation loop delta time<br>
+                    • Camera rotation.y = playerRotation for first-person view<br>
+                    • Tank mode: separate tankRotation variable for vehicle turning<br><br>
+                    
+                    <strong>State Management:</strong><br>
+                    • isTurning boolean tracks turn state<br>
+                    • updatePlayerMovement() applies rotation every frame<br>
+                    • Smooth rotation via delta time multiplication
+                </div>
+            </div>
+            
+            <div class="dep-category" style="margin-bottom: 20px;">
+                <h3>Silent Hill Lighting & Atmosphere</h3>
+                <div class="dep-list" style="font-size: 11px; line-height: 1.5;">
+                    <strong>Lighting System (maps.js):</strong><br>
+                    • Ambient light reduced to 0x222222 (very dark gray)<br>
+                    • Directional light intensity lowered to 0.3 (vs 0.8 in city)<br>
+                    • Fog system: THREE.Fog with 0x333333 color<br>
+                    • Fog range: starts at 5 units, full opacity at 15 units<br>
+                    • Scene background changed to dark gray (0x333333)<br><br>
+                    
+                    <strong>Material Modifications:</strong><br>
+                    • Target objects: emissive lighting (0x333333) for visibility<br>
+                    • Zombie materials: darkened by 70% (.multiplyScalar(0.3))<br>
+                    • Creates ominous, horror-game atmosphere with limited visibility
+                </div>
+            </div>
+
+            <div class="dep-category">
+                <h3>MicroBit Hardware Controller Code</h3>
+                <div class="dep-list" style="font-size: 11px; line-height: 1.5;">
+                    <strong>Python Implementation (microbit.py):</strong><br>
+                    • Runs infinite loop at 20Hz (50ms sleep) for responsive input<br>
+                    • Dual-mode button handling for regular vs tank mode compatibility<br>
+                    • Button A: Continuous state tracking (1 = pressed, 0 = released)<br>
+                    • Button B: State-based tracking for tank mode, edge detection for regular mode<br>
+                    • Serial output format: "a_state,b_state" (comma-separated values)<br><br>
+                    
+                    <strong>Edge Detection Logic:</strong><br>
+                    • button_b_prev tracks previous B button state<br>
+                    • Edge detection: b_pressed = b_current AND NOT b_prev<br>
+                    • JavaScript receives both continuous state and discrete events<br>
+                    • Regular mode uses edge detection for discrete steps<br>
+                    • Tank mode uses continuous state for smooth movement<br><br>
+                    
+                    <strong>Communication Protocol:</strong><br>
+                    • Web Serial API receives data via USB connection<br>
+                    • 115200 baud rate with 64-byte buffer in JavaScript<br>
+                    • Data parsing handles newline-separated button state pairs<br>
+                    • Robust error handling for connection interruptions
+                </div>
+            </div>
+
+            <div class="dep-category">
+                <h3>Item Detection & Collection System</h3>
+                <div class="dep-list" style="font-size: 11px; line-height: 1.5;">
+                    <strong>How Item Collection Works (interactions.js):</strong><br>
+                    • <u>checkInteractions():</u> Called every frame from main animation loop<br>
+                    • <u>Distance Detection:</u> Uses Three.js Vector3.distanceTo() for proximity checking<br>
+                    • <u>Collection Range:</u> Items collected within 3.0 units of player/tank position<br>
+                    • <u>Player Position:</u> Uses playerPosition in walking mode, tankPosition in tank mode<br>
+                    • <u>Collision Detection:</u> No raycasting needed - simple distance calculation<br><br>
+                    
+                    <strong>Item Collection Process Flow:</strong><br>
+                    1. <u>Frame Update:</u> checkInteractions() called every requestAnimationFrame cycle<br>
+                    2. <u>Position Retrieval:</u> const playerPos = tankMode ? tankPosition : playerPosition<br>
+                    3. <u>Distance Loop:</u> Iterate through all items in itemObjects array<br>
+                    4. <u>Distance Check:</u> const distance = playerPos.distanceTo(item.object.position)<br>
+                    5. <u>Collection Test:</u> if (distance < 3.0 && item not target/zombie)<br>
+                    6. <u>Item Removal:</u> scene.remove(item.object) removes 3D model from scene<br>
+                    7. <u>State Update:</u> setHasGun(true)/setHasKnife(true) updates global state<br>
+                    8. <u>UI Update:</u> updateItemsList() modifies HTML to show collected weapons<br>
+                    9. <u>Audio Feedback:</u> playReloadSound()/playKnifeSound() confirms collection<br><br>
+                    
+                    <strong>Technical Implementation Details:</strong><br>
+                    • <u>Array Management:</u> itemObjects.filter() creates new array without collected item<br>
+                    • <u>Animation Cleanup:</u> Stops AnimationMixer and removes from global mixers array<br>
+                    • <u>Memory Management:</u> Proper cleanup prevents memory leaks from removed objects<br>
+                    • <u>Exclusion System:</u> Targets and zombies excluded via itemType !== 'target' check<br>
+                    • <u>Current Weapon Logic:</u> Glock always becomes current, knife only if no gun<br><br>
+                    
+                    <strong>Distance Calculation Mathematics:</strong><br>
+                    • Three.js Vector3.distanceTo() uses Euclidean distance formula<br>
+                    • Formula: √[(x₂-x₁)² + (y₂-y₁)² + (z₂-z₁)²]<br>
+                    • Works in full 3D space - player can collect items above/below<br>
+                    • 3.0 unit radius creates invisible sphere around player for collection<br>
+                    • More generous than collision detection (0.5 units) for better UX
+                </div>
+            </div>
+
+            <div class="dep-category">
+                <h3>Collision Detection & Bounds Checking</h3>
+                <div class="dep-list" style="font-size: 11px; line-height: 1.5;">
+                    <strong>Collision Detection System (movement.js):</strong><br>
+                    • Three.js Raycaster shoots ray from player position in movement direction<br>
+                    • Ray length = step distance (0.5 units) to check path before moving<br>
+                    • Intersects with all scene objects that have mesh geometry<br>
+                    • If intersection found within step distance → movement blocked<br>
+                    • If no collision → player position updated, camera follows<br><br>
+                    
+                    <strong>Raycasting Implementation:</strong><br>
+                    • raycaster.setFromCamera() creates ray from camera position<br>
+                    • Direction vector calculated: [cos(playerRotation), 0, sin(playerRotation)]<br>
+                    • intersectObjects(scene.children) checks all 3D models<br>
+                    • Returns array of intersections sorted by distance<br>
+                    • First intersection[0].distance compared to step size<br><br>
+                    
+                    <strong>Ground Following & Y-Axis Bounds:</strong><br>
+                    • Vertical raycaster shoots downward from player position<br>
+                    • getGroundHeight() finds terrain intersection point<br>
+                    • Camera Y = groundHeight + eyeHeight (typically +1.6 units)<br>
+                    • Prevents player from floating or falling through terrain<br>
+                    • Automatic terrain following for slopes and elevation changes<br><br>
+                    
+                    <strong>Unified Tank Collision:</strong><br>
+                    • Tank uses same collision detection system as walking<br>
+                    • checkCollision() function accepts position parameter for flexibility<br>
+                    • Tank position passed to collision function instead of player position<br>
+                    • Same raycasting logic, map boundaries, and object intersection detection<br>
+                    • Consistent collision behavior across all movement modes
+                </div>
+            </div>
+
+            <div class="dep-category">
+                <h3>Three.js Scenes & Camera Architecture</h3>
+                <div class="dep-list" style="font-size: 11px; line-height: 1.5;">
+                    <strong>Scene Management System:</strong><br>
+                    • <u>Main Scene:</u> Contains all 3D world geometry (maps, items, zombies)<br>
+                    • <u>FPS Overlay Scene:</u> Separate scene for weapon models rendered on top<br>
+                    • Dual rendering: main scene first, then FPS scene with depth clearing<br>
+                    • Scene.add()/remove() manages object lifecycle and memory<br>
+                    • scene.children array holds all 3D objects for raycasting<br><br>
+                    
+                    <strong>Camera Types & Usage:</strong><br>
+                    • <u>PerspectiveCamera (main):</u> 75° FOV for realistic first-person view<br>
+                    • <u>OrthographicCamera (FPS):</u> 2D projection for weapon overlay positioning<br>
+                    • Perspective: camera.position/rotation for world navigation<br>
+                    • Orthographic: fixed screen coordinates for UI elements<br>
+                    • camera.updateProjectionMatrix() recalculates on window resize<br><br>
+                    
+                    <strong>Rendering Pipeline:</strong><br>
+                    • renderer.render(mainScene, perspectiveCamera) draws 3D world<br>
+                    • renderer.autoClear = false prevents clearing between renders<br>
+                    • renderer.render(fpsScene, orthographicCamera) draws weapon overlay<br>
+                    • WebGL context manages both scenes with proper depth/stencil buffers<br>
+                    • Single WebGLRenderer handles multiple scene/camera combinations<br><br>
+                    
+                    <strong>Camera State Management:</strong><br>
+                    • First-person: camera follows playerPosition + eye height offset<br>
+                    • Tank mode: camera positioned behind tank with lookAt() targeting<br>
+                    • Camera transitions: smooth interpolation between positions/rotations<br>
+                    • camera.rotation.y = playerRotation for synchronized turning
+                </div>
+            </div>
+
+            <div class="dep-category">
+                <h3>Dynamic Item Loading & Map Population</h3>
+                <div class="dep-list" style="font-size: 11px; line-height: 1.5;">
+                    <strong>Item Loading System (items.js):</strong><br>
+                    • loadItem(path, x, y, z, scale, type) function loads GLB models<br>
+                    • GLTFLoader asynchronously loads 3D assets (glock.glb, zombie.glb, etc.)<br>
+                    • Items positioned at specific world coordinates upon load completion<br>
+                    • itemObjects array tracks all loaded items for interaction/collision<br>
+                    • Scene.add() integrates loaded models into main 3D scene<br><br>
+                    
+                    <strong>Asynchronous GLB Loading Process:</strong><br>
+                    • GLTFLoader.load() is non-blocking - doesn't freeze the game while loading<br>
+                    • Three callback functions: onLoad, onProgress, onError<br>
+                    • onLoad: executes when model successfully loads (positioning, animations, scene.add)<br>
+                    • onProgress: tracks loading progress for large models (unused in this project)<br>
+                    • onError: handles failed loads gracefully with fallback behavior<br>
+                    • Loading happens in parallel - multiple models can load simultaneously<br>
+                    • Game continues running while assets load in background<br><br>
+                    
+                    <strong>Map-Specific Item Placement:</strong><br>
+                    • addItemsToMap(mapType) called during map transitions<br>
+                    • <u>City Map:</u> Glock at (0,-1,-4), Knife at (5,0,-6), 3 targets at (-6,0.75,Y)<br>
+                    • <u>Silent Hill:</u> Same targets + 3 zombies at (-10,-12,-14, Y=-2,-3,-4)<br>
+                    • Conditional loading: weapons only spawn if not already collected<br>
+                    • Hardcoded coordinates ensure consistent item placement<br><br>
+                    
+                    <strong>Item State & Lifecycle:</strong><br>
+                    • Item type classification: 'glock', 'knife', 'target', 'zombie'<br>
+                    • Material processing: shader fixes, lighting adjustments per item type<br>
+                    • Animation setup: GLB animations loaded into AnimationMixer system<br>
+                    • Cleanup: clearItemObjects() removes all items on map transitions<br>
+                    • Memory management: proper disposal of geometries and materials<br><br>
+                    
+                    <strong>Interactive Object Creation:</strong><br>
+                    • createInteractionObject() generates map transition triggers<br>
+                    • Procedural geometry: BoxGeometry + text canvas for labels<br>
+                    • Dynamic positioning based on map layout requirements<br>
+                    • interactionObjects array separate from collectible items<br>
+                    • Tank interaction uses actual tank.glb model instead of basic geometry
+                </div>
+            </div>
+
+            <div class="dep-category">
+                <h3>Detailed Module Breakdown</h3>
+                
+                <div style="border: 1px solid #000; margin: 10px 0; padding: 15px; background-color: #f8f8f8;">
+                    <strong style="font-size: 12px; text-transform: uppercase;">items.js - Item System & Combat</strong>
+                    <div class="dep-list" style="font-size: 10px; line-height: 1.4; margin-top: 8px;">
+                        <strong>Core Functions:</strong><br>
+                        • <u>loadItem():</u> GLTFLoader wrapper for loading 3D models with positioning, scaling, rotation<br>
+                        • <u>addItemsToMap():</u> Map-specific item placement (weapons in city, zombies in Silent Hill)<br>
+                        • <u>clearItemObjects():</u> Clean removal of all items, animations, and effects on map transitions<br>
+                        • <u>rotateItems():</u> Continuous rotation animation for collectible weapons (glock, knife)<br><br>
+                        
+                        <strong>Combat Systems:</strong><br>
+                        • <u>checkTargetHit():</u> Raycasting from camera for bullet trajectory, creates bullet holes<br>
+                        • <u>checkKnifeSlash():</u> Proximity detection for melee combat within 2.0 units<br>
+                        • <u>flipZombie():</u> Death animation - stops zombie animation, rotates 90°, marks as defeated<br>
+                        • <u>addSlashMark():</u> Creates 3D slash geometry on targets with random positioning<br><br>
+                        
+                        <strong>Shooting Mechanism Deep Dive:</strong><br>
+                        • <u>Input Trigger:</u> Z key press in fps.js calls shootRecoil() function<br>
+                        • <u>shootRecoil():</u> Plays weapon animation, sound effects, calls checkTargetHit()<br>
+                        • <u>Raycasting System:</u> THREE.Raycaster shoots invisible ray from camera position<br>
+                        • <u>Ray Direction:</u> Uses camera.getWorldDirection() - exactly where crosshairs point<br>
+                        • <u>Intersection Testing:</u> raycaster.intersectObjects() checks all meshes in scene<br>
+                        • <u>Hit Detection:</u> First intersection point determines what was shot<br><br>
+                        
+                        <strong>Zombie Death Detection Logic:</strong><br>
+                        • <u>Distance Check:</u> Only zombies within 5.0 units can be shot/hit<br>
+                        • <u>Raycast Filtering:</u> Raycaster finds all mesh intersections in shooting direction<br>
+                        • <u>Zombie Mesh Detection:</u> zombie.object.traverse() finds all child meshes<br>
+                        • <u>Hit Confirmation:</u> If ray intersects zombie mesh → flipZombie() called<br>
+                        • <u>Death State:</u> zombie.object.userData.flipped = true prevents further hits<br>
+                        • <u>Animation Stop:</u> mixer.stopAllAction() freezes zombie movement<br>
+                        • <u>Visual Death:</u> rotation.x = -π/2 flips zombie to ground, position.y += 0.1<br><br>
+                        
+                        <strong>Animation & AI:</strong><br>
+                        • AnimationMixer integration for zombie GLB animations<br>
+                        • Animation loop event listeners for zombie forward movement (0.1 units per cycle)<br>
+                        • Material processing: shader fixes, lighting adjustments per item type<br>
+                        • Audio management: zombie proximity detection triggers zombie.mp3<br><br>
+                        
+                        <strong>State Management:</strong><br>
+                        • itemObjects array tracks all loaded items with type classification<br>
+                        • slashMarks and bulletHoles arrays for visual effect cleanup<br>
+                        • Collision exclusion system (targets/zombies don't get collected like weapons)
+                    </div>
+                </div>
+                
+                <div style="border: 1px solid #000; margin: 10px 0; padding: 15px; background-color: #f8f8f8;">
+                    <strong style="font-size: 12px; text-transform: uppercase;">maps.js - Environment Management</strong>
+                    <div class="dep-list" style="font-size: 10px; line-height: 1.4; margin-top: 8px;">
+                        <strong>Map Loading Pipeline:</strong><br>
+                        • <u>loadMap():</u> Master function coordinating map transitions, cleanup, and loading<br>
+                        • <u>clearCurrentMap():</u> Removes all 3D geometry, items, interactions, and effects<br>
+                        • <u>loadEnvironmentModel():</u> GLTFLoader for environment GLB files with material processing<br>
+                        • Loading screen management with progress indicators and error handling<br><br>
+                        
+                        <strong>Lighting & Atmosphere Systems:</strong><br>
+                        • <u>setupLighting():</u> Dynamic lighting per environment (ambient + directional light)<br>
+                        • <u>City:</u> Bright lighting (ambient: 0x404040, directional: 0.8 intensity)<br>
+                        • <u>Subway:</u> Dim underground lighting (ambient: 0x202020, directional: 0.4)<br>
+                        • <u>Silent Hill:</u> Dark horror atmosphere (ambient: 0x222222, fog system)<br>
+                        • THREE.Fog implementation with distance-based visibility culling<br><br>
+                        
+                        <strong>Map-Specific Features:</strong><br>
+                        • <u>getMapBoundaries():</u> Returns collision boundaries for each environment<br>
+                        • Background music switching via audio.js integration<br>
+                        • Map-specific item and interaction loading coordination<br>
+                        • Camera and player position management during transitions<br><br>
+                        
+                        <strong>Asset Management:</strong><br>
+                        • Geometry and material cleanup to prevent memory leaks<br>
+                        • Texture disposal and Three.js resource management<br>
+                        • Error fallback systems for missing GLB files<br>
+                        • Asynchronous loading with non-blocking user experience
+                    </div>
+                </div>
+                
+                <div style="border: 1px solid #000; margin: 10px 0; padding: 15px; background-color: #f8f8f8;">
+                    <strong style="font-size: 12px; text-transform: uppercase;">interactions.js - Object Interactions & UI</strong>
+                    <div class="dep-list" style="font-size: 10px; line-height: 1.4; margin-top: 8px;">
+                        <strong>Interaction Object System:</strong><br>
+                        • <u>createInteractionObject():</u> Generates colored cubes with text labels for map transitions<br>
+                        • <u>createTankInteractionObject():</u> Special tank.glb model loader for tank access<br>
+                        • Canvas-based text rendering for 3D labels with billboard behavior<br>
+                        • Dynamic positioning and scaling based on map layout requirements<br><br>
+                        
+                        <strong>Item Collection System:</strong><br>
+                        • <u>checkInteractions():</u> Main interaction loop called every frame<br>
+                        • Distance-based detection (3.0 units for items, 2.0 for map transitions)<br>
+                        • Weapon pickup logic with state updates (hasGun, hasKnife)<br>
+                        • Animation mixer cleanup when items are collected<br>
+                        • Exclusion system prevents collecting targets and zombies<br><br>
+                        
+                        <strong>Map Transition Logic:</strong><br>
+                        • Proximity detection for interaction objects (SUBWAY, CITY, TANK labels)<br>
+                        • loadMap() calls for seamless environment switching<br>
+                        • Special handling for returning to city (isReturningToCity flag)<br>
+                        • Player/tank position and mode state preservation<br><br>
+                        
+                        <strong>UI Integration:</strong><br>
+                        • <u>updateItemsList():</u> Dynamic HTML update of current weapons display<br>
+                        • DOM manipulation via document.getElementById('itemsList')<br>
+                        • Real-time UI feedback when items are collected<br>
+                        • Audio feedback integration (reload sounds, knife sounds)<br><br>
+                        
+                        <strong>State Coordination:</strong><br>
+                        • Cross-module communication with state.js setters<br>
+                        • Weapon state management (setHasGun, setCurrentWeapon)<br>
+                        • Integration with fps.js for weapon overlay updates<br>
+                        • Memory management for removed objects and cleanup
+                    </div>
+                </div>
+            </div>
+
+            <div class="dep-category">
+                <h3>Software Design Patterns Implementation</h3>
+                
+                <div style="border: 1px solid #000; margin: 10px 0; padding: 15px; background-color: #f0f0f0;">
+                    <strong style="font-size: 12px; text-transform: uppercase;">Architectural Patterns</strong>
+                    <div class="dep-list" style="font-size: 10px; line-height: 1.4; margin-top: 8px;">
+                        <strong>• Module Pattern (ES6 Modules):</strong><br>
+                        Each .js file is a separate module with explicit imports/exports<br>
+                        Encapsulation of functionality, dependency injection, namespace isolation<br><br>
+                        
+                        <strong>• Centralized State Management:</strong><br>
+                        state.js acts as single source of truth for all game state<br>
+                        Getter/setter pattern prevents direct state mutation<br>
+                        Cross-module communication hub with reactive updates<br><br>
+                        
+                        <strong>• Model-View-Controller (MVC):</strong><br>
+                        Model: state.js (game data), View: Three.js rendering + HTML UI<br>
+                        Controller: input.js (user interaction handling)<br>
+                        Clear separation of concerns between data, presentation, and control
+                    </div>
+                </div>
+                
+                <div style="border: 1px solid #000; margin: 10px 0; padding: 15px; background-color: #f0f0f0;">
+                    <strong style="font-size: 12px; text-transform: uppercase;">Behavioral Patterns</strong>
+                    <div class="dep-list" style="font-size: 10px; line-height: 1.4; margin-top: 8px;">
+                        <strong>• Observer Pattern:</strong><br>
+                        AnimationMixer event listeners for zombie animation loops<br>
+                        Audio proximity detection triggering sound events<br>
+                        Item pickup triggering UI updates and state changes<br><br>
+                        
+                        <strong>• Strategy Pattern:</strong><br>
+                        Different collision detection strategies for walking vs tank mode<br>
+                        Map-specific lighting and atmosphere configurations<br>
+                        Weapon-specific animation and behavior implementations<br><br>
+                        
+                        <strong>• Command Pattern:</strong><br>
+                        MicroBit input commands (turn, move) encapsulated as discrete actions<br>
+                        makeStep() and turn operations as executable commands<br>
+                        Weapon actions (shoot, slash) as command objects<br><br>
+                        
+                        <strong>• State Pattern:</strong><br>
+                        Game mode switching (regular walking, tank mode, FPS overlay)<br>
+                        Weapon states (none, glock, knife) with different behaviors<br>
+                        Map states with different rules and available actions
+                    </div>
+                </div>
+                
+                <div style="border: 1px solid #000; margin: 10px 0; padding: 15px; background-color: #f0f0f0;">
+                    <strong style="font-size: 12px; text-transform: uppercase;">Creational Patterns</strong>
+                    <div class="dep-list" style="font-size: 10px; line-height: 1.4; margin-top: 8px;">
+                        <strong>• Factory Pattern:</strong><br>
+                        loadItem() creates different item types (weapons, targets, zombies)<br>
+                        createInteractionObject() generates map transition triggers<br>
+                        Map-specific object creation based on environment type<br><br>
+                        
+                        <strong>• Builder Pattern:</strong><br>
+                        Scene construction with progressive addition of lights, objects, effects<br>
+                        FPS overlay construction with camera, scene, and weapon models<br>
+                        Map loading pipeline building complete environments step-by-step<br><br>
+                        
+                        <strong>• Singleton Pattern:</strong><br>
+                        Global Three.js renderer, scene, and camera instances<br>
+                        Single AudioContext and animation loop<br>
+                        Centralized state management with single state.js module
+                    </div>
+                </div>
+                
+                <div style="border: 1px solid #000; margin: 10px 0; padding: 15px; background-color: #f0f0f0;">
+                    <strong style="font-size: 12px; text-transform: uppercase;">Structural Patterns</strong>
+                    <div class="dep-list" style="font-size: 10px; line-height: 1.4; margin-top: 8px;">
+                        <strong>• Facade Pattern:</strong><br>
+                        loadMap() provides simple interface hiding complex map loading logic<br>
+                        checkInteractions() facade for complex proximity and collection systems<br>
+                        Audio system facade simplifying Web Audio API complexity<br><br>
+                        
+                        <strong>• Adapter Pattern:</strong><br>
+                        MicroBit serial data parsing adapting hardware input to game commands<br>
+                        GLTFLoader adapting 3D model files to Three.js scene objects<br>
+                        Web Audio API adaptation for simple sound effect playback<br><br>
+                        
+                        <strong>• Composite Pattern:</strong><br>
+                        Three.js scene graph with nested objects (models, animations, effects)<br>
+                        itemObjects array containing different item types with uniform interface<br>
+                        Animation system composing multiple mixers and actions<br><br>
+                        
+                        <strong>• Decorator Pattern:</strong><br>
+                        Material enhancement for different item types (targets glow, zombies darken)<br>
+                        Animation mixers adding behavior to static 3D models<br>
+                        Camera decorators for different modes (first-person, tank, FPS overlay)
+                    </div>
+                </div>
+                
+                <div style="border: 1px solid #000; margin: 10px 0; padding: 15px; background-color: #f0f0f0;">
+                    <strong style="font-size: 12px; text-transform: uppercase;">Game-Specific Patterns</strong>
+                    <div class="dep-list" style="font-size: 10px; line-height: 1.4; margin-top: 8px;">
+                        <strong>• Game Loop Pattern:</strong><br>
+                        main.js animate() function with requestAnimationFrame<br>
+                        Fixed update cycle for physics, animations, and rendering<br>
+                        Delta time integration for frame-rate independent movement<br><br>
+                        
+                        <strong>• Entity-Component Pattern:</strong><br>
+                        Game objects (zombies, items) with userData properties for behavior<br>
+                        Modular components: position, rotation, animation, collision<br>
+                        Mix-and-match functionality based on item type<br><br>
+                        
+                        <strong>• Update Method Pattern:</strong><br>
+                        updatePlayerMovement(), rotateItems(), checkZombieProximity()<br>
+                        Regular update cycles for game object behaviors<br>
+                        Consistent timing and state synchronization<br><br>
+                        
+                        <strong>• Object Pool Pattern:</strong><br>
+                        Reusable geometry and materials for bullet holes and slash marks<br>
+                        Animation mixer reuse across multiple objects<br>
+                        Memory efficient particle and effect management
+                    </div>
+                </div>
+            </div>
+
+            <div class="dep-category">
+                <h3>Additional Design Patterns for Future Enhancement</h3>
+                
+                <div style="border: 1px solid #000; margin: 10px 0; padding: 15px; background-color: #f5f5f5;">
+                    <strong style="font-size: 12px; text-transform: uppercase;">Performance & Memory Patterns</strong>
+                    <div class="dep-list" style="font-size: 10px; line-height: 1.4; margin-top: 8px;">
+                        <strong>• Flyweight Pattern:</strong><br>
+                        Share identical geometries/materials across multiple zombies/targets<br>
+                        Reduce memory usage for repeated 3D models and textures<br>
+                        Separate intrinsic (shared) from extrinsic (position, rotation) properties<br><br>
+                        
+                        <strong>• Proxy Pattern:</strong><br>
+                        Lazy loading for large GLB models (load on demand, not at startup)<br>
+                        Virtual proxies for distant objects (load when player approaches)<br>
+                        Caching proxies for frequently accessed game state<br><br>
+                        
+                        <strong>• Memento Pattern:</strong><br>
+                        Save/restore game state for checkpoints or quick save functionality<br>
+                        Undo system for map editing or debugging<br>
+                        Store player progress across browser sessions
+                    </div>
+                </div>
+                
+                <div style="border: 1px solid #000; margin: 10px 0; padding: 15px; background-color: #f5f5f5;">
+                    <strong style="font-size: 12px; text-transform: uppercase;">Event & Communication Patterns</strong>
+                    <div class="dep-list" style="font-size: 10px; line-height: 1.4; margin-top: 8px;">
+                        <strong>• Publisher-Subscriber (PubSub):</strong><br>
+                        Event bus for loose coupling between modules (weapon pickup, map change)<br>
+                        Global event system for UI updates, sound triggers, achievements<br>
+                        Replace direct function calls with event emissions<br><br>
+                        
+                        <strong>• Mediator Pattern:</strong><br>
+                        Central coordinator for complex interactions between systems<br>
+                        GameManager mediating between input, movement, combat, and UI<br>
+                        Reduce dependencies between modules<br><br>
+                        
+                        <strong>• Chain of Responsibility:</strong><br>
+                        Input handling pipeline (MicroBit → keyboard → gamepad fallback)<br>
+                        Collision detection chain (bounds → objects → terrain)<br>
+                        Error handling escalation system
+                    </div>
+                </div>
+                
+                <div style="border: 1px solid #000; margin: 10px 0; padding: 15px; background-color: #f5f5f5;">
+                    <strong style="font-size: 12px; text-transform: uppercase;">Game Logic Enhancement Patterns</strong>
+                    <div class="dep-list" style="font-size: 10px; line-height: 1.4; margin-top: 8px;">
+                        <strong>• Template Method Pattern:</strong><br>
+                        Base weapon class with abstract shoot/reload methods<br>
+                        Common AI behavior template with specific enemy implementations<br>
+                        Map loading template with environment-specific customization<br><br>
+                        
+                        <strong>• Visitor Pattern:</strong><br>
+                        Different behaviors for different item types without modifying items<br>
+                        Collision response visitors (bounce, destroy, collect, damage)<br>
+                        Rendering visitors for different visual effects<br><br>
+                        
+                        <strong>• Iterator Pattern:</strong><br>
+                        Safe traversal of game objects during updates/removal<br>
+                        Custom iteration over spatial data structures (quadtree, octree)<br>
+                        Animation sequence iterators for complex cutscenes
+                    </div>
+                </div>
+                
+                <div style="border: 1px solid #000; margin: 10px 0; padding: 15px; background-color: #f5f5f5;">
+                    <strong style="font-size: 12px; text-transform: uppercase;">Advanced Game Architecture Patterns</strong>
+                    <div class="dep-list" style="font-size: 10px; line-height: 1.4; margin-top: 8px;">
+                        <strong>• Component System (ECS):</strong><br>
+                        Entity-Component-System for more flexible game objects<br>
+                        Separate data (components) from logic (systems)<br>
+                        Better performance and modularity than current userData approach<br><br>
+                        
+                        <strong>• Service Locator:</strong><br>
+                        Global registry for accessing audio, input, and rendering services<br>
+                        Dependency injection alternative with runtime service discovery<br>
+                        Easier testing with mock services<br><br>
+                        
+                        <strong>• Double Buffer:</strong><br>
+                        Separate update and render phases for smoother animation<br>
+                        Buffer game state changes to prevent mid-frame inconsistencies<br>
+                        Useful for complex physics or networking
+                    </div>
+                </div>
+                
+                <div style="border: 1px solid #000; margin: 10px 0; padding: 15px; background-color: #f5f5f5;">
+                    <strong style="font-size: 12px; text-transform: uppercase;">User Experience Patterns</strong>
+                    <div class="dep-list" style="font-size: 10px; line-height: 1.4; margin-top: 8px;">
+                        <strong>• MVC for UI (Model-View-ViewModel):</strong><br>
+                        Separate UI logic from game logic with data binding<br>
+                        Reactive UI updates when game state changes<br>
+                        Better organization for complex menus and HUD elements<br><br>
+                        
+                        <strong>• Prototype Pattern:</strong><br>
+                        Clone existing game objects for procedural generation<br>
+                        Template-based enemy spawning with variations<br>
+                        Copy weapon configurations for different difficulty levels<br><br>
+                        
+                        <strong>• Null Object Pattern:</strong><br>
+                        Default "empty" behaviors instead of null checks<br>
+                        NoWeapon class that does nothing instead of checking hasGun<br>
+                        Silent audio objects for muted gameplay
+                    </div>
+                </div>
+                
+                <div style="border: 1px solid #000; margin: 10px 0; padding: 15px; background-color: #f5f5f5;">
+                    <strong style="font-size: 12px; text-transform: uppercase;">Implementation Priority Recommendations</strong>
+                    <div class="dep-list" style="font-size: 10px; line-height: 1.4; margin-top: 8px;">
+                        <strong>HIGH IMPACT:</strong><br>
+                        • Flyweight Pattern - significant memory savings for repeated models<br>
+                        • Publisher-Subscriber - cleaner module communication<br>
+                        • Template Method - more maintainable weapon system<br><br>
+                        
+                        <strong>MEDIUM IMPACT:</strong><br>
+                        • Component System (ECS) - better game object architecture<br>
+                        • Memento Pattern - save/load functionality<br>
+                        • Proxy Pattern - improved loading performance<br><br>
+                        
+                        <strong>LOW PRIORITY:</strong><br>
+                        • Iterator Pattern - mainly useful for complex collections<br>
+                        • Double Buffer - overkill for current game complexity<br>
+                        • Service Locator - current import system works well
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
